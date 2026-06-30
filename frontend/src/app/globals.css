@@ -1,0 +1,148 @@
+/* =============================================================================
+   AI Trading Co-Pilot — Global Styles
+   ============================================================================= */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Base Layer ───────────────────────────────────────────────────────────── */
+@layer base {
+  /* Prevent CLS — set explicit sizing constraints */
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-surface-950 text-text-primary font-sans;
+    min-height: 100vh;
+  }
+
+  /* Scrollbar styling for dark theme */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-surface-900;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-surface-600 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-surface-500;
+  }
+}
+
+/* ── Component Layer ──────────────────────────────────────────────────────── */
+@layer components {
+  /* Frosted glass panel — the signature look */
+  .glass-panel {
+    @apply bg-surface-800/60 backdrop-blur-md border border-border rounded-xl;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25),
+                inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  }
+
+  .glass-panel-hover {
+    @apply glass-panel transition-all duration-300;
+  }
+
+  .glass-panel-hover:hover {
+    @apply border-border-hover bg-surface-700/60;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  /* Metric card with glow effect */
+  .metric-card {
+    @apply glass-panel p-4 rounded-lg;
+    transition: box-shadow 0.3s ease, transform 0.2s ease;
+  }
+
+  .metric-card:hover {
+    transform: translateY(-1px);
+  }
+
+  .metric-card.positive {
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.08);
+  }
+
+  .metric-card.negative {
+    box-shadow: 0 0 20px rgba(244, 63, 94, 0.08);
+  }
+
+  /* Signal badges */
+  .signal-badge {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold uppercase tracking-wider;
+  }
+
+  .signal-badge.buy {
+    @apply bg-bull-muted text-bull-light;
+  }
+
+  .signal-badge.sell {
+    @apply bg-bear-muted text-bear-light;
+  }
+
+  .signal-badge.hold {
+    @apply bg-accent-muted text-accent-light;
+  }
+
+  /* Chat message bubble */
+  .chat-bubble {
+    @apply rounded-2xl px-4 py-3 max-w-[85%] animate-fade-in;
+  }
+
+  .chat-bubble.user {
+    @apply bg-accent/20 text-text-primary ml-auto rounded-br-md;
+  }
+
+  .chat-bubble.ai {
+    @apply bg-surface-700/80 text-text-primary mr-auto rounded-bl-md border border-border;
+  }
+
+  /* Ticker pill */
+  .ticker-pill {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-md
+           bg-surface-700 text-text-secondary text-xs font-mono
+           border border-border transition-colors;
+  }
+
+  .ticker-pill:hover {
+    @apply border-accent text-accent-light;
+  }
+}
+
+/* ── Utility Layer ────────────────────────────────────────────────────────── */
+@layer utilities {
+  /* Gradient text utility */
+  .text-gradient {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
+  }
+
+  /* Divider with glow */
+  .divider-glow {
+    @apply h-px w-full;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(59, 130, 246, 0.3) 50%,
+      transparent 100%
+    );
+  }
+
+  /* Hide scrollbar but keep scroll functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
