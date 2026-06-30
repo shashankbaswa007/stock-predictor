@@ -25,50 +25,43 @@ interface CandlestickChartProps {
   data: CandlestickData[];
 }
 
-// Custom shape for candlestick
 const Candlestick = (props: any) => {
-  const {
-    x,
-    y,
-    width,
-    height,
-    open,
-    close,
-    high,
-    low,
-    yAxis,
-  } = props;
+  const { x, y, width, height, payload } = props;
+  const { open, close, high, low } = payload;
 
   const isBull = close >= open;
   const color = isBull ? "#22c55e" : "#ef4444"; // bull (green) / bear (red)
 
-  // Calculate pixel coordinates
-  const yOpen = yAxis.scale(open);
-  const yClose = yAxis.scale(close);
-  const yHigh = yAxis.scale(high);
-  const yLow = yAxis.scale(low);
+  // In this setup, the Bar's dataKey is ["low", "high"].
+  // So props.y is the Y-coordinate of `high` (the top of the wick).
+  // And props.height is the pixel height from `high` to `low`.
+  const valueRange = high - low;
+  const pixelsPerDollar = valueRange > 0 ? height / valueRange : 0;
 
-  const rectY = Math.min(yOpen, yClose);
-  const rectHeight = Math.abs(yOpen - yClose) || 1;
+  const topBodyVal = Math.max(open, close);
+  const bottomBodyVal = Math.min(open, close);
+
+  const bodyY = y + (high - topBodyVal) * pixelsPerDollar;
+  const bodyHeight = Math.max((topBodyVal - bottomBodyVal) * pixelsPerDollar, 1);
   const centerX = x + width / 2;
 
   return (
     <g>
-      {/* Wick */}
+      {/* Wick (spans from high to low) */}
       <line
         x1={centerX}
-        y1={yHigh}
+        y1={y}
         x2={centerX}
-        y2={yLow}
+        y2={y + height}
         stroke={color}
         strokeWidth={1}
       />
       {/* Body */}
       <rect
         x={x}
-        y={rectY}
+        y={bodyY}
         width={width}
-        height={rectHeight}
+        height={bodyHeight}
         fill={color}
         stroke={color}
       />
@@ -136,17 +129,8 @@ export function CandlestickChart({ data }: CandlestickChartProps) {
             }}
           />
           <Bar
-            dataKey="close"
-            shape={(props: any) => (
-              <Candlestick
-                {...props}
-                open={props.payload.open}
-                close={props.payload.close}
-                high={props.payload.high}
-                low={props.payload.low}
-                yAxis={props.yAxis}
-              />
-            )}
+            dataKey={["low", "high"]}
+            shape={<Candlestick />}
             isAnimationActive={false}
           />
         </ComposedChart>

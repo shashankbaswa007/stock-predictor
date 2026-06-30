@@ -1,39 +1,45 @@
 """
-vector_store.py — In-Memory FAISS Vector Database for RAG
-=============================================================
-Manages an ephemeral, in-memory FAISS vector database.
-Populates it with the deterministic mock 10-K and news data from Phase 2.
-Uses a mock embedder to keep development lightning fast and completely offline.
+vector_store.py — Local FAISS Vector Database for RAG (Phase 5)
+===============================================================
+Manages a FAISS vector database stored locally.
+Uses HuggingFace embeddings for 100% free offline embedding.
 """
 
+import os
 from typing import List, Dict
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
-from langchain_core.embeddings import FakeEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings
 
 from services.mock_data import generate_10k_excerpts, generate_news
 
+INDEX_PATH = "faiss_index"
 
-# We use FakeEmbeddings in mock-first development so we don't need to download
-# heavy ML models or burn OpenAI credits just to test the RAG architecture.
-# The size 384 matches common small models like all-MiniLM-L6-v2.
-_mock_embeddings = FakeEmbeddings(size=384)
+# Use free HuggingFace embeddings (downloads model automatically on first run)
+_embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
 # Global singleton for the in-memory store
 _vector_store = None
 
 
 def _initialize_store():
-    """Create the FAISS store and pre-load it with data for a few tickers."""
+    """Load the FAISS store from disk, or create and save it if missing."""
     global _vector_store
     
+    if os.path.exists(INDEX_PATH):
+        try:
+            _vector_store = FAISS.load_local(INDEX_PATH, _embeddings, allow_dangerous_deserialization=True)
+            return
+        except Exception as e:
+            print(f"Failed to load FAISS index: {e}. Rebuilding...")
+
     docs: List[Document] = []
     
     # Pre-populate with a few core tickers
     tickers = ["AAPL", "NVDA", "MSFT"]
     
     for ticker in tickers:
-        # Load 10-K Excerpts
+        # Load generic company summaries
         excerpts = generate_10k_excerpts(ticker)
         for ex in excerpts:
             docs.append(
@@ -49,7 +55,7 @@ def _initialize_store():
                 )
             )
             
-        # Load News Headlines
+        # Load actual News Headlines from DuckDuckGo
         news = generate_news(ticker, count=5)
         for article in news:
             docs.append(
@@ -65,12 +71,13 @@ def _initialize_store():
                 )
             )
             
-    # Initialize FAISS with the mock embeddings
+    # Initialize FAISS with the real embeddings
     if docs:
-        _vector_store = FAISS.from_documents(docs, _mock_embeddings)
+        _vector_store = FAISS.from_documents(docs, _embeddings)
+        _vector_store.save_local(INDEX_PATH)
     else:
         # Fallback empty store
-        _vector_store = FAISS.from_texts(["Empty"], _mock_embeddings)
+        _vector_store = FAISS.from_texts(["Empty"], _embeddings)
 
 
 def get_vector_store() -> FAISS:
@@ -84,18 +91,10 @@ def get_vector_store() -> FAISS:
 def retrieve_context(query: str, ticker: str, k: int = 3) -> List[Dict]:
     """
     Retrieve top-k most relevant documents for a given query and ticker.
-    
-    Args:
-        query: The search query
-        ticker: The stock ticker to filter by
-        k: Number of documents to return
-        
-    Returns:
-        List of dictionaries with content and metadata
     """
     store = get_vector_store()
     
-    # Filter by ticker (FAISS supports simple metadata filtering)
+    # Filter by ticker
     filter_dict = {"ticker": ticker.upper()}
     
     # Perform similarity search

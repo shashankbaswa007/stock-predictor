@@ -1,46 +1,69 @@
 """
-executive_agent.py — Master Synthesizer Engine
-================================================
+executive_agent.py — Master Synthesizer Engine (Phase 5: Real API)
+==================================================================
 Takes the outputs of the sub-agents (Quant, Fundamental, Risk),
 applies a master system prompt, and returns a strict JSON response
-containing the human message, explainability data points, and UI actions.
-
-In production, this wraps a strong LLM (e.g., GPT-4o).
-In mock-mode, it uses deterministic logic to generate the JSON response.
+containing the human message, explainability data points, and UI actions
+using a real LLM.
 """
 
 import json
-from typing import Dict, Any
+from typing import Dict, Any, List, Optional
+from pydantic import BaseModel, Field
+from agents.llm_factory import get_llm
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# MASTER SYSTEM PROMPT (For Real LLM Integration)
+# PYDANTIC SCHEMAS FOR STRUCTURED OUTPUT
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class UIActionPayload(BaseModel):
+    mode: str = Field(description="One of: 'short_term', 'long_term', 'portfolio'")
+    ticker: str = Field(description="The active ticker symbol to display")
+
+class UIAction(BaseModel):
+    action: str = Field(description="One of: 'switch_view', 'change_ticker', or 'none'")
+    payload: UIActionPayload
+
+class ExecutiveResponse(BaseModel):
+    message: str = Field(description="The human-readable markdown response addressing the user's prompt.")
+    confidence: float = Field(description="Confidence score between 0.0 and 1.0")
+    signal: str = Field(description="One of: 'BUY', 'SELL', or 'HOLD'")
+    reasoning: List[str] = Field(description="List of 2-3 short bullet points explaining the decision for Explainable AI (XAI) UI badges.")
+    ui_action: Optional[UIAction] = Field(None, description="The UI action to perform to update the dashboard view based on the user's intent.")
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# MASTER SYSTEM PROMPT
 # ═══════════════════════════════════════════════════════════════════════════════
 
 EXECUTIVE_SYSTEM_PROMPT = """
 You are an elite quantitative trading Executive AI Co-Pilot.
-You will be provided with analysis from three sub-engines:
+You will be provided with a user's query and analysis from three sub-engines:
 1. Quant Engine (ML price forecasts, technical indicators)
 2. Fundamental Engine (RAG over SEC filings and news)
 3. Risk Engine (Portfolio VaR, concentration limits)
 
+The primary intent of the user was routed as: {intent}
+Target Ticker: {ticker}
+
 Your job is to synthesize this data into a clear, actionable summary for the user.
 
-CRITICAL INSTRUCTION: You MUST return your response as a raw JSON object with the following schema:
-{
-  "message": "The human-readable markdown response",
-  "confidence": 0.85,  // float between 0 and 1
-  "signal": "BUY" | "SELL" | "HOLD",
-  "reasoning": [
-    "List of 2-3 short bullet points explaining the decision for XAI"
-  ],
-  "ui_action": {
-    "action": "switch_view" | "change_ticker" | "none",
-    "payload": {
-       "mode": "short_term" | "long_term" | "portfolio",
-       "ticker": "AAPL"
-    }
-  } // Can be null if no action needed
-}
+CRITICAL UI ACTION INSTRUCTIONS:
+- If the intent is 'quant' or the user asks for charts/prices/short-term, set ui_action.action="switch_view" and mode="short_term".
+- If the intent is 'fundamental' or the user asks for news/10-K/long-term, set ui_action.action="switch_view" and mode="long_term".
+- If the intent is 'risk' or the user asks about their holdings/portfolio, set ui_action.action="switch_view" and mode="portfolio".
+- ALWAYS ensure ui_action.payload.ticker matches the target ticker.
+
+Sub-Engine Data:
+---
+Quant Data:
+{quant_data}
+---
+Fundamental Data:
+{fundamental_data}
+---
+Risk Data:
+{risk_data}
+---
 """
 
 def synthesize_response(
@@ -50,100 +73,43 @@ def synthesize_response(
     quant_data: Dict, 
     fundamental_data: Dict, 
     risk_data: Dict,
-    use_mock_llm: bool = True
+    use_mock_llm: bool = False
 ) -> Dict[str, Any]:
     """
-    Synthesizes the final AI response.
+    Synthesizes the final AI response using a real LLM.
     """
-    if not use_mock_llm:
-        # In the future, pass EXECUTIVE_SYSTEM_PROMPT and the sub-agent JSONs to an LLM here
-        raise NotImplementedError("Real LLM execution is not yet implemented. Use use_mock_llm=True.")
+    try:
+        llm = get_llm()
+        structured_llm = llm.with_structured_output(ExecutiveResponse)
         
-    # ── MOCK EXECUTIVE LOGIC ──────────────────────────────────────────────────
-    
-    # Base response structure
-    response = {
-        "confidence": 0.0,
-        "signal": "HOLD",
-        "reasoning": [],
-        "ui_action": None,
-        "agent_source": intent
-    }
-    
-    # 1. Determine UI Action based on intent
-    if intent == "quant":
-        response["ui_action"] = {"action": "switch_view", "payload": {"mode": "short_term"}}
-    elif intent == "fundamental":
-        response["ui_action"] = {"action": "switch_view", "payload": {"mode": "long_term"}}
-    elif intent == "risk":
-        response["ui_action"] = {"action": "switch_view", "payload": {"mode": "portfolio"}}
-        
-    # 2. Synthesize based on the primary intent
-    if intent == "quant":
-        ml = quant_data.get("ml_forecast", {})
-        ml_return = ml.get("total_predicted_return", 0.0)
-        signal = ml.get("signal", "HOLD")
-        
-        response["signal"] = signal
-        response["confidence"] = ml.get("confidence_score", 0.75)
-        response["reasoning"] = [
-            f"ML Ridge Regression forecasts a {ml_return}% return over 5 days.",
-            f"Technical Confluence: {quant_data.get('confluence_strength', 'MIXED')}",
-            f"Current RSI: {quant_data.get('indicators', {}).get('rsi', 50):.1f}"
-        ]
-        
-        icon = "📈" if signal == "BUY" else "📉" if signal == "SELL" else "📊"
-        response["message"] = (
-            f"**{icon} Quant Analysis for {ticker.upper()}**\n\n"
-            f"Our ML models predict a **{signal}** signal with an expected move of **{ml_return}%** "
-            f"over the next 5 periods. Technical indicators show {quant_data.get('technical_signal', 'HOLD').lower()} momentum. "
-            f"I have switched your dashboard to the **Short-Term View** to visualize this."
+        prompt = EXECUTIVE_SYSTEM_PROMPT.format(
+            intent=intent,
+            ticker=ticker,
+            quant_data=json.dumps(quant_data, indent=2),
+            fundamental_data=json.dumps(fundamental_data, indent=2),
+            risk_data=json.dumps(risk_data, indent=2)
         )
         
-    elif intent == "fundamental":
-        sentiment = fundamental_data.get("sentiment_label", "NEUTRAL")
-        score = fundamental_data.get("sentiment_score", 0.0)
+        prompt += f"\n\nUser Query: {query}\nProvide your synthesis."
         
-        response["signal"] = "BUY" if sentiment == "BULLISH" else "SELL" if sentiment == "BEARISH" else "HOLD"
-        response["confidence"] = min(0.9, 0.5 + abs(score))
-        response["reasoning"] = [
-            f"Sentiment Analysis: {sentiment} ({score:.2f})",
-            "RAG retrieved context from most recent 10-K filings.",
-            "Recent news headlines align with fundamental thesis."
-        ]
+        # Invoke the LLM
+        response: ExecutiveResponse = structured_llm.invoke(prompt)
         
-        response["message"] = (
-            f"**🏢 Fundamental Analysis for {ticker.upper()}**\n\n"
-            f"Based on my RAG pipeline over recent SEC filings and news, the outlook is **{sentiment}**. "
-            f"{fundamental_data.get('summary', '')} "
-            f"I have opened the **Long-Term View** for deeper fundamental metrics."
-        )
+        # Convert back to dict for the API layer to return as JSON
+        # Include agent_source for the UI
+        result = response.dict()
+        result["agent_source"] = intent
         
-    elif intent == "risk":
-        var = risk_data.get("var_95", 0.0)
-        conc = risk_data.get("max_concentration", {})
+        return result
         
-        response["signal"] = "HOLD"
-        response["confidence"] = 0.90
-        response["reasoning"] = [
-            f"Portfolio VaR (95%): ${var:,.2f}",
-            f"Max concentration: {conc.get('ticker')} at {conc.get('weight', 0)*100:.1f}%",
-            f"Target {ticker} correlation check complete."
-        ]
-        
-        response["message"] = (
-            f"**🛡️ Risk Analysis & Sizing**\n\n"
-            f"{risk_data.get('summary', '')} "
-            f"I have switched your view to the **Portfolio Manager** so you can review your current exposures."
-        )
-        
-    else: # general
-        response["message"] = (
-            f"I am your AI Trading Co-Pilot. I can analyze {ticker.upper()} using quantitative "
-            f"models, fundamental RAG pipelines, or portfolio risk metrics. Try asking me:\n\n"
-            f"* 'What's the short-term forecast for {ticker.upper()}?'\n"
-            f"* 'Show me the fundamental outlook for {ticker.upper()}'\n"
-            f"* 'How would buying {ticker.upper()} affect my portfolio risk?'"
-        )
-        
-    return response
+    except Exception as e:
+        print(f"Error in executive_agent: {e}")
+        # Fallback response in case the LLM fails
+        return {
+            "message": f"I encountered an error processing that request with the AI: {str(e)}",
+            "confidence": 0.0,
+            "signal": "HOLD",
+            "reasoning": ["Error connecting to LLM provider"],
+            "ui_action": None,
+            "agent_source": intent
+        }

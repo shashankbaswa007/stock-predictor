@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     # ── AI / LLM (leave empty → mock agent responses) ─────────────────────
     openai_api_key: str = ""
     openai_model: str = "gpt-4o"
+    gemini_api_key: str = ""
+    groq_api_key: str = ""
 
     # ── Vector Database (leave empty → in-memory FAISS) ───────────────────
     pinecone_api_key: str = ""
@@ -35,6 +37,8 @@ class Settings(BaseSettings):
     @property
     def use_mock_market_data(self) -> bool:
         """True when no real market data provider key is configured."""
+        # For Phase 5 we use yfinance which is always free and needs no key.
+        # But we leave this for architecture consistency.
         return not any([
             self.alpha_vantage_api_key,
             self.finnhub_api_key,
@@ -44,7 +48,11 @@ class Settings(BaseSettings):
     @property
     def use_mock_llm(self) -> bool:
         """True when no real LLM key is configured."""
-        return not bool(self.openai_api_key)
+        return not any([
+            self.openai_api_key,
+            self.gemini_api_key,
+            self.groq_api_key
+        ])
 
     model_config = {
         "env_file": ".env",

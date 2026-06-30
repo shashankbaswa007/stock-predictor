@@ -98,7 +98,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
         )}
 
         {/* Timestamp */}
-        <span className="text-[10px] text-text-muted px-1">
+        <span suppressHydrationWarning className="text-[10px] text-text-muted px-1">
           {new Date(message.timestamp).toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",

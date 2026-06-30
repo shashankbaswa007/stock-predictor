@@ -29,3 +29,9 @@ sentence-transformers==3.0.0
 
 # WebSocket support (included in uvicorn[standard])
 websockets==12.0
+yfinance
+langchain-google-genai
+langchain-groq
+duckduckgo-search
+sentence-transformers
+faiss-cpu

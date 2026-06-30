@@ -1,53 +1,26 @@
 """
-routes_ws.py — WebSocket Route for Live Price Streaming (Phase 2: Realistic Ticks)
-====================================================================================
-Streams realistic mock price ticks via WebSocket using the TickGenerator.
-Supports multiple tickers per connection via query parameter.
+routes_ws.py — WebSocket Route for Live Price Streaming (Phase 5: Real API)
+=============================================================================
+Streams real price ticks via WebSocket using yfinance polling.
 """
 
 import asyncio
 import json
+from datetime import datetime
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
-
-from services.mock_data import TickGenerator
+from services.mock_data import generate_quote
 
 router = APIRouter()
-
 
 @router.websocket("/ws/prices")
 async def websocket_prices(
     websocket: WebSocket,
     ticker: str = Query("AAPL", description="Ticker to stream"),
 ):
-    """
-    WebSocket endpoint for streaming live price updates.
-
-    Sends a realistic random-walk tick every 500ms using the TickGenerator.
-    The tick includes: price, bid, ask, volume, and timestamp.
-
-    Query params:
-      • ticker — Stock symbol to stream (default: AAPL)
-
-    Message format (server → client):
-      {
-        "type": "tick",
-        "ticker": "AAPL",
-        "price": 195.32,
-        "bid": 195.29,
-        "ask": 195.35,
-        "volume": 2450,
-        "tick_number": 42,
-        "timestamp": "2024-01-15T10:30:00.000"
-      }
-
-    Client can send JSON messages to change the ticker mid-stream:
-      {"action": "subscribe", "ticker": "NVDA"}
-    """
     await websocket.accept()
-
-    # Initialize tick generator for the requested ticker
-    generator = TickGenerator(ticker.upper())
+    current_ticker = ticker.upper()
+    tick_count = 0
 
     try:
         while True:
@@ -56,35 +29,46 @@ async def websocket_prices(
                 # Wait briefly for client messages (ticker change requests)
                 message = await asyncio.wait_for(
                     websocket.receive_text(),
-                    timeout=0.5  # 500ms tick interval
+                    timeout=10.0  # Poll yfinance every 10 seconds
                 )
-                # Parse client command
                 try:
                     data = json.loads(message)
                     if data.get("action") == "subscribe" and data.get("ticker"):
-                        new_ticker = data["ticker"].upper()
-                        generator = TickGenerator(new_ticker)
-                        # Acknowledge subscription change
+                        current_ticker = data["ticker"].upper()
+                        tick_count = 0
                         await websocket.send_text(json.dumps({
                             "type": "subscribed",
-                            "ticker": new_ticker,
-                            "message": f"Now streaming {new_ticker}",
+                            "ticker": current_ticker,
+                            "message": f"Now streaming {current_ticker}",
                         }))
                         continue
                 except (json.JSONDecodeError, KeyError):
-                    pass  # Ignore malformed messages
-
+                    pass
             except asyncio.TimeoutError:
-                pass  # No message — proceed to send tick
+                pass  # Proceed to send tick after timeout
 
-            # Generate and send the next tick
-            tick = generator.next_tick()
+            # Fetch real quote from yfinance
+            quote = generate_quote(current_ticker)
+            tick_count += 1
+            
+            tick = {
+                "type": "tick",
+                "ticker": current_ticker,
+                "price": quote.get("price", 0.0),
+                "bid": quote.get("price", 0.0), # yf doesn't always provide bid/ask for free
+                "ask": quote.get("price", 0.0),
+                "volume": quote.get("volume", 0),
+                "tick_number": tick_count,
+                "timestamp": datetime.now().isoformat()
+            }
+            
             await websocket.send_text(json.dumps(tick))
 
     except WebSocketDisconnect:
-        pass  # Client disconnected gracefully
-    except Exception:
+        pass
+    except Exception as e:
+        print(f"WS Error: {e}")
         try:
             await websocket.close()
-        except Exception:
+        except:
             pass
