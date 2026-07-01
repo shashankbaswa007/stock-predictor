@@ -11,6 +11,7 @@
 "use client";
 
 import React, { useEffect } from "react";
+import { Group, Panel, Separator } from "react-resizable-panels";
 import { useAppStore } from "@/store/useAppStore";
 import { DashboardPanel } from "@/components/dashboard/DashboardPanel";
 import { ChatPanel } from "@/components/chat/ChatPanel";
@@ -107,33 +108,41 @@ export default function HomePage() {
           MAIN CONTENT — SPLIT SCREEN
           ═══════════════════════════════════════════════════════════════════ */}
       <main className="flex-1 flex min-h-0 overflow-hidden">
-        {/* ── Dashboard Panel (65%) ───────────────────────────────────── */}
-        <div className="w-[65%] min-w-0 h-full p-3 pr-1.5 overflow-hidden">
-          <div className="h-full glass-panel p-4 overflow-hidden flex flex-col">
-            <DashboardPanel />
-          </div>
-        </div>
+        <Group direction="horizontal">
+          {/* ── Dashboard Panel ───────────────────────────────────── */}
+          <Panel defaultSize={65} minSize={30}>
+            <div className="h-full p-3 pr-1.5 overflow-hidden">
+              <div className="h-full glass-panel p-4 overflow-hidden flex flex-col">
+                <DashboardPanel />
+              </div>
+            </div>
+          </Panel>
 
-        {/* ── Vertical Divider ────────────────────────────────────────── */}
-        <div className="w-px bg-border flex-shrink-0 my-3" />
+          {/* ── Vertical Divider Handle ─────────────────────────────────── */}
+          <Separator className="w-1.5 group flex items-center justify-center">
+            <div className="w-px h-12 bg-border group-hover:bg-accent/50 group-hover:w-1 transition-all rounded" />
+          </Separator>
 
-        {/* ── Chat Co-Pilot Panel (35%) ───────────────────────────────── */}
-        <div className="w-[35%] min-w-0 h-full p-3 pl-1.5 overflow-hidden">
-          <div className="h-full glass-panel overflow-hidden flex flex-col">
-            <ChatPanel />
-          </div>
-        </div>
+          {/* ── Chat Co-Pilot Panel ───────────────────────────────── */}
+          <Panel defaultSize={35} minSize={25}>
+            <div className="h-full p-3 pl-1.5 overflow-hidden">
+              <div className="h-full glass-panel overflow-hidden flex flex-col">
+                <ChatPanel />
+              </div>
+            </div>
+          </Panel>
+        </Group>
       </main>
 
       {/* ═══════════════════════════════════════════════════════════════════
           BOTTOM STATUS BAR
           ═══════════════════════════════════════════════════════════════════ */}
-      <footer className="flex-shrink-0 h-6 border-t border-border bg-surface-900/60 backdrop-blur-sm">
+      <footer className="flex-shrink-0 h-8 border-t border-border bg-surface-900/60 backdrop-blur-sm">
         <div className="h-full flex items-center justify-between px-4 text-[10px] text-text-muted">
           <div className="flex items-center gap-3">
             <span>v0.1.0</span>
             <span>·</span>
-            <span>Mock Data Mode</span>
+            <span className="text-accent/80 font-medium">For educational and informational purposes only. Not financial advice.</span>
           </div>
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1">

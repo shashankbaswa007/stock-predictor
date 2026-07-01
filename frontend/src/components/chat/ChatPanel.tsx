@@ -78,11 +78,18 @@ export function ChatPanel() {
         signal: response.signal as "BUY" | "SELL" | "HOLD" | null,
         confidence: response.confidence ?? undefined,
         reasoning: response.reasoning,
+        citations: response.citations,
       });
 
       // ── Process UI Action Commands ──────────────────────────────────
       if (response.ui_action) {
         const { action, payload } = response.ui_action;
+        
+        // Always sync the dashboard ticker if the AI specifies it
+        if (payload.ticker) {
+          setTicker(payload.ticker as string);
+        }
+
         switch (action) {
           case "switch_view":
             if (payload.mode) {
@@ -90,9 +97,7 @@ export function ChatPanel() {
             }
             break;
           case "change_ticker":
-            if (payload.ticker) {
-              setTicker(payload.ticker as string);
-            }
+            // Already handled above
             break;
           case "show_portfolio":
             setViewMode("portfolio");
@@ -146,11 +151,32 @@ export function ChatPanel() {
         </div>
       </div>
 
-      {/* Message List */}
+      {/* ── Messages Area ─────────────────────────────────────────────────── */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto scrollbar-hide px-4 py-4 space-y-4"
+        className="flex-1 overflow-y-auto scrollbar-hide p-4 space-y-4"
       >
+        {chatMessages.length === 0 && (
+          <div className="flex flex-col items-center justify-center h-full text-center space-y-4 animate-fade-in opacity-80">
+            <div className="w-12 h-12 rounded-2xl bg-surface-800/80 border border-border flex items-center justify-center mb-2">
+              <Bot className="w-6 h-6 text-accent" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-text-primary mb-1">
+                AI Trading Co-Pilot
+              </p>
+              <p className="text-xs text-text-muted max-w-[240px] leading-relaxed mx-auto">
+                Ask me to analyze a stock, check your portfolio risk, or fetch the latest financial news.
+              </p>
+            </div>
+            <div className="bg-surface-800/50 border border-border/50 rounded-lg p-3 max-w-[260px] mx-auto mt-4">
+              <p className="text-[10px] text-text-secondary leading-relaxed">
+                <span className="text-accent font-semibold block mb-0.5">Disclaimer</span>
+                All analysis and metrics provided are for informational and educational purposes only. This is not financial advice.
+              </p>
+            </div>
+          </div>
+        )}
         {chatMessages.map((msg) => (
           <ChatMessage key={msg.id} message={msg} />
         ))}

@@ -27,6 +27,7 @@ export interface ChatMessage {
   signal?: Signal;
   confidence?: number;
   reasoning?: string[];
+  citations?: string[];
 }
 
 export interface Holding {

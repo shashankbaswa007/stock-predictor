@@ -9,9 +9,11 @@
 "use client";
 
 import React from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAppStore, ViewMode } from "@/store/useAppStore";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Badge } from "@/components/ui/Badge";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { MetricsGrid } from "./MetricsGrid";
 import { TickerSearch } from "./TickerSearch";
 import { cn, formatCurrency, formatPercent, trendColor } from "@/lib/utils";
@@ -53,12 +55,32 @@ import { wsService } from "@/lib/ws";
 
 // ── Component ────────────────────────────────────────────────────────────────
 
+// ── Custom Hook for Flash Effect ─────────────────────────────────────────────
+function usePrevious<T>(value: T): T | undefined {
+  const ref = React.useRef<T>();
+  React.useEffect(() => {
+    ref.current = value;
+  }, [value]);
+  return ref.current;
+}
+
 export function DashboardPanel() {
   const viewMode = useAppStore((s) => s.viewMode);
   const setViewMode = useAppStore((s) => s.setViewMode);
   const currentTicker = useAppStore((s) => s.currentTicker);
   const portfolio = useAppStore((s) => s.portfolio);
   const livePrice = useAppStore((s) => s.livePrice);
+
+  const prevPrice = usePrevious(livePrice);
+  const [flashClass, setFlashClass] = React.useState("");
+
+  React.useEffect(() => {
+    if (livePrice && prevPrice && livePrice !== prevPrice) {
+      setFlashClass(livePrice > prevPrice ? "bg-bull/20 text-bull" : "bg-bear/20 text-bear");
+      const timer = setTimeout(() => setFlashClass("text-accent"), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [livePrice, prevPrice]);
 
   React.useEffect(() => {
     wsService.subscribe(currentTicker);
@@ -98,7 +120,7 @@ export function DashboardPanel() {
           <Activity className="w-3 h-3 text-accent" />
           <span className="text-text-primary font-semibold">{currentTicker}</span>
           {livePrice !== null && (
-            <span className="ml-1 text-accent font-mono animate-pulse">
+            <span className={cn("ml-1 font-mono transition-colors duration-300 px-1.5 rounded", flashClass || "text-accent")}>
               ${livePrice.toFixed(2)}
             </span>
           )}
@@ -111,16 +133,43 @@ export function DashboardPanel() {
           </span>
         </div>
         <div className="flex items-center gap-1 ticker-pill">
-          <span>VaR(95%)</span>
+          <InfoTooltip content="Value at Risk (VaR): A statistical measure of the risk of loss for an investment. It estimates how much a set of investments might lose given normal market conditions.">
+            <span className="cursor-help border-b border-dashed border-text-muted/50">VaR(95%)</span>
+          </InfoTooltip>
           <span className="text-bear font-mono">{formatCurrency(portfolio.var95 ?? 0)}</span>
         </div>
+        {livePrice !== null && (
+          <div className="flex items-center gap-1 text-[10px] ml-auto">
+            <span className="text-text-muted/70">Data Source:</span>
+            <span className="text-text-secondary font-medium">Finnhub Real-Time</span>
+            <span className="mx-1 text-border">•</span>
+            <span className="text-text-muted/70">Last updated:</span>
+            <span className="text-text-secondary font-mono">
+              {new Date().toLocaleTimeString([], { hour12: false })}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* ── Main Content Area ───────────────────────────────────────────── */}
-      <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide space-y-3">
-        {viewMode === "short_term" && <ShortTermView ticker={currentTicker} />}
-        {viewMode === "long_term" && <LongTermView ticker={currentTicker} />}
-        {viewMode === "portfolio" && <PortfolioView />}
+      <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide space-y-3 relative overflow-hidden">
+        <AnimatePresence mode="wait">
+          {viewMode === "short_term" && (
+            <motion.div key="short_term" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }} className="h-full">
+              <ShortTermView ticker={currentTicker} />
+            </motion.div>
+          )}
+          {viewMode === "long_term" && (
+            <motion.div key="long_term" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }} className="h-full">
+              <LongTermView ticker={currentTicker} />
+            </motion.div>
+          )}
+          {viewMode === "portfolio" && (
+            <motion.div key="portfolio" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }} className="h-full">
+              <PortfolioView />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
@@ -129,7 +178,7 @@ export function DashboardPanel() {
 // ── Short-Term View (Phase 4 Active) ─────────────────────────────────────────
 
 import { useState, useEffect } from "react";
-import { fetchHistory } from "@/lib/api";
+import { fetchHistory, fetchNews, fetchQuote } from "@/lib/api";
 import { CandlestickChart } from "./CandlestickChart";
 import { TechnicalChart } from "./TechnicalChart";
 import { Spinner } from "@/components/ui/Spinner";
@@ -137,6 +186,7 @@ import { Spinner } from "@/components/ui/Spinner";
 function ShortTermView({ ticker }: { ticker: string }) {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showIndicators, setShowIndicators] = useState(true);
 
   useEffect(() => {
     let mounted = true;
@@ -186,50 +236,71 @@ function ShortTermView({ ticker }: { ticker: string }) {
       {/* Technical Indicators */}
       <GlassCard
         header={
-          <div className="flex items-center gap-2">
+          <div 
+            className="flex items-center gap-2 cursor-pointer select-none group w-full"
+            onClick={() => setShowIndicators(!showIndicators)}
+          >
             <LineChart className="w-4 h-4 text-bull" />
-            <span className="text-sm font-medium text-text-primary">
+            <span className="text-sm font-medium text-text-primary group-hover:text-accent-light transition-colors">
               Technical Indicators
             </span>
             <Badge label="RSI" />
             <Badge label="MACD" />
+            <div className="ml-auto text-text-muted transition-transform duration-200" style={{ transform: showIndicators ? "rotate(0deg)" : "rotate(180deg)" }}>
+              ▼
+            </div>
           </div>
         }
       >
-        <div className="h-[180px] flex p-2 gap-2">
-          {loading ? (
-            <div className="w-full h-full flex flex-col items-center justify-center gap-2">
-              <Spinner />
-            </div>
-          ) : (
-            <>
-              {/* Left Side: Indicator Values */}
-              <div className="w-32 flex flex-col items-center justify-center gap-4 border-r border-border/50 shrink-0">
-                <div className="text-center">
-                  <p className="text-2xl font-mono font-bold text-bull">
-                    {latest?.rsi ? latest.rsi.toFixed(1) : "--"}
-                  </p>
-                  <p className="text-xs text-text-muted mt-0.5">RSI (14)</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-2xl font-mono font-bold text-accent">
-                    {latest?.macd ? latest.macd.toFixed(2) : "--"}
-                  </p>
-                  <p className="text-xs text-text-muted mt-0.5">MACD</p>
-                </div>
+        <AnimatePresence>
+          {showIndicators && (
+            <motion.div 
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="h-[220px] flex p-2 gap-4">
+                {loading ? (
+                  <div className="w-full h-full flex flex-col items-center justify-center gap-2">
+                    <Spinner />
+                  </div>
+                ) : (
+                  <>
+                    {/* Left Side: Indicator Values */}
+                    <div className="w-32 flex flex-col justify-around py-4 border-r border-border/50 shrink-0">
+                      <div className="text-center flex flex-col items-center">
+                        <p className="text-3xl font-mono font-bold text-bull tracking-tighter">
+                          {latest?.rsi ? latest.rsi.toFixed(1) : "--"}
+                        </p>
+                        <InfoTooltip content="Relative Strength Index (RSI): Measures the speed and magnitude of recent price changes to evaluate overvalued or undervalued conditions. >70 is typically overbought, <30 is oversold.">
+                          <p className="text-xs text-text-muted mt-1 uppercase tracking-widest font-semibold">RSI (14)</p>
+                        </InfoTooltip>
+                      </div>
+                      <div className="text-center flex flex-col items-center">
+                        <p className="text-3xl font-mono font-bold text-accent tracking-tighter">
+                          {latest?.macd ? latest.macd.toFixed(2) : "--"}
+                        </p>
+                        <InfoTooltip content="Moving Average Convergence Divergence (MACD): A trend-following momentum indicator that shows the relationship between two moving averages of a security's price.">
+                          <p className="text-xs text-text-muted mt-1 uppercase tracking-widest font-semibold">MACD</p>
+                        </InfoTooltip>
+                      </div>
+                    </div>
+                    {/* Right Side: Charts */}
+                    <div className="flex-1 flex flex-col gap-3 min-w-0">
+                      <div className="flex-1 min-h-0 border border-border/30 rounded-lg bg-surface-900/30 p-1">
+                        <TechnicalChart data={data} type="RSI" />
+                      </div>
+                      <div className="flex-1 min-h-0 border border-border/30 rounded-lg bg-surface-900/30 p-1">
+                        <TechnicalChart data={data} type="MACD" />
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
-              {/* Right Side: Charts */}
-              <div className="flex-1 flex flex-col gap-2 min-w-0">
-                <div className="flex-1 min-h-0">
-                  <TechnicalChart data={data} type="RSI" />
-                </div>
-                <div className="flex-1 min-h-0">
-                  <TechnicalChart data={data} type="MACD" />
-                </div>
-              </div>
-            </>
+            </motion.div>
           )}
-        </div>
+        </AnimatePresence>
       </GlassCard>
 
       {/* Metrics Grid */}
@@ -238,49 +309,95 @@ function ShortTermView({ ticker }: { ticker: string }) {
   );
 }
 
-// ── Long-Term View (Phase 1 Placeholder) ─────────────────────────────────────
+// ── Long-Term View (Phase 7: Live Data) ──────────────────────────────────────
+
+
 
 function LongTermView({ ticker }: { ticker: string }) {
+  const [news, setNews] = useState<any[]>([]);
+  const [quote, setQuote] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+    Promise.all([fetchNews(ticker), fetchQuote(ticker)])
+      .then(([newsRes, quoteRes]) => {
+        if (mounted) {
+          setNews(newsRes.articles || []);
+          setQuote(quoteRes);
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+        if (mounted) setLoading(false);
+      });
+    return () => { mounted = false; };
+  }, [ticker]);
+
   return (
     <div className="space-y-3 animate-fade-in">
+      {/* News Feed */}
       <GlassCard
         header={
           <div className="flex items-center gap-2">
             <BookOpen className="w-4 h-4 text-accent" />
             <span className="text-sm font-medium text-text-primary">
-              {ticker} — Fundamental Analysis
+              {ticker} — Latest News & Analysis
             </span>
-            <Badge label="RAG Pipeline" />
+            <Badge label="Finnhub" />
           </div>
         }
       >
-        <div className="h-[320px] flex items-center justify-center p-6">
-          <div className="text-center space-y-3">
-            <div className="w-16 h-16 mx-auto rounded-2xl bg-bull/10 border border-bull/20 flex items-center justify-center">
-              <BookOpen className="w-8 h-8 text-bull/60" />
+        <div className="max-h-[320px] overflow-y-auto scrollbar-hide p-2 space-y-2">
+          {loading ? (
+            <div className="w-full h-[200px] flex flex-col items-center justify-center gap-2">
+              <Spinner />
+              <span className="text-xs text-text-muted">Loading news...</span>
             </div>
-            <div>
-              <p className="text-text-secondary text-sm font-medium">
-                RAG-Powered Fundamental Analysis
-              </p>
-              <p className="text-text-muted text-xs mt-1">
-                SEC filings, earnings calls & macro analysis — loading in Phase 3
-              </p>
+          ) : news.length === 0 ? (
+            <div className="text-center py-8 text-text-muted text-sm">
+              No recent news found for {ticker}.
             </div>
-          </div>
+          ) : (
+            news.map((article, i) => (
+              <a
+                key={i}
+                href={article.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block p-3 rounded-lg bg-surface-800/50 border border-border/50 hover:border-accent/30 hover:bg-surface-700/50 transition-all duration-200 group"
+              >
+                <p className="text-sm font-medium text-text-primary group-hover:text-accent-light line-clamp-2">
+                  {article.headline}
+                </p>
+                <div className="flex items-center gap-2 mt-1.5 text-[11px] text-text-muted">
+                  <span className="font-medium text-accent/80">{article.source}</span>
+                  <span>·</span>
+                  <span>{new Date(article.published_at).toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+                </div>
+                {article.summary && (
+                  <p className="text-xs text-text-muted mt-1.5 line-clamp-2">{article.summary}</p>
+                )}
+              </a>
+            ))
+          )}
         </div>
       </GlassCard>
 
-      {/* Key Metrics */}
+      {/* Key Metrics from live quote */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: "P/E Ratio", value: "28.5x", trend: null },
-          { label: "Revenue Growth", value: "+12.3%", trend: "up" },
-          { label: "Debt/Equity", value: "1.45", trend: null },
-          { label: "Free Cash Flow", value: "$4.2B", trend: "up" },
+          { label: "P/E Ratio", value: quote ? `${quote.pe_ratio}x` : "--", trend: null, tooltip: "Price-to-Earnings Ratio: Measures the company's current share price relative to its per-share earnings." },
+          { label: "EPS", value: quote ? `$${quote.eps}` : "--", trend: quote?.eps > 0 ? "up" : null, tooltip: "Earnings Per Share: A company's profit divided by the outstanding shares of its common stock." },
+          { label: "Div Yield", value: quote ? `${quote.dividend_yield}%` : "--", trend: null, tooltip: "Dividend Yield: A financial ratio that shows how much a company pays out in dividends each year relative to its stock price." },
+          { label: "Beta", value: quote ? quote.beta.toFixed(2) : "--", trend: null, tooltip: "Beta: A measure of the volatility, or systematic risk, of a security compared to the market as a whole (Beta > 1 means more volatile)." },
         ].map((m) => (
           <div key={m.label} className="metric-card">
-            <p className="text-text-muted text-xs">{m.label}</p>
+            <InfoTooltip content={m.tooltip}>
+              <p className="text-text-muted text-xs cursor-help">{m.label}</p>
+            </InfoTooltip>
             <div className="flex items-center gap-1.5 mt-1">
               <p className="text-lg font-mono font-semibold text-text-primary">
                 {m.value}
