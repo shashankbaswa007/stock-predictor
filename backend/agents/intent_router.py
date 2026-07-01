@@ -46,7 +46,7 @@ def route_intent(prompt: str, context: Dict[str, Any]) -> str:
     quant_keywords = ["short", "trade", "technical", "rsi", "macd", "chart", "price", "predict", "forecast", "momentum", "trend", "moving average"]
     fundamental_keywords = ["long", "invest", "value", "10-k", "sec", "earnings", "revenue", "growth", "outlook", "fundamental", "news"]
     risk_keywords = ["risk", "portfolio", "var", "exposure", "hedging", "diversification", "drawdown", "loss"]
-    discovery_keywords = ["which company", "what stocks", "recommend", "best stock", "screener", "which stock", "top stock", "what company", "top companies", "best companies", "top 5", "top 10", "what to invest", "good stock"]
+    discovery_keywords = ["which company", "which companies", "what stocks", "recommend", "best stock", "screener", "which stock", "top stock", "what company", "what companies", "top companies", "best companies", "top 5", "top 10", "what to invest", "good stock", "good stocks"]
     
     # 3. Score the prompt
     quant_score = sum(1 for k in quant_keywords if k in prompt_lower)
