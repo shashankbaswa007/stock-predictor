@@ -1,16 +1,7 @@
 "use client";
 
-import React, { useMemo } from "react";
-import {
-  ComposedChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
-import { formatCurrency } from "@/lib/utils";
+import React, { useEffect, useRef } from "react";
+import { createChart, ColorType, CrosshairMode, CandlestickSeries, HistogramSeries } from "lightweight-charts";
 
 interface CandlestickData {
   timestamp: string;
@@ -25,116 +16,93 @@ interface CandlestickChartProps {
   data: CandlestickData[];
 }
 
-const Candlestick = (props: any) => {
-  const { x, y, width, height, payload } = props;
-  const { open, close, high, low } = payload;
-
-  const isBull = close >= open;
-  const color = isBull ? "#22c55e" : "#ef4444"; // bull (green) / bear (red)
-
-  // In this setup, the Bar's dataKey is ["low", "high"].
-  // So props.y is the Y-coordinate of `high` (the top of the wick).
-  // And props.height is the pixel height from `high` to `low`.
-  const valueRange = high - low;
-  const pixelsPerDollar = valueRange > 0 ? height / valueRange : 0;
-
-  const topBodyVal = Math.max(open, close);
-  const bottomBodyVal = Math.min(open, close);
-
-  const bodyY = y + (high - topBodyVal) * pixelsPerDollar;
-  const bodyHeight = Math.max((topBodyVal - bottomBodyVal) * pixelsPerDollar, 1);
-  const centerX = x + width / 2;
-
-  return (
-    <g>
-      {/* Wick (spans from high to low) */}
-      <line
-        x1={centerX}
-        y1={y}
-        x2={centerX}
-        y2={y + height}
-        stroke={color}
-        strokeWidth={1}
-      />
-      {/* Body */}
-      <rect
-        x={x}
-        y={bodyY}
-        width={width}
-        height={bodyHeight}
-        fill={color}
-        stroke={color}
-      />
-    </g>
-  );
-};
-
 export function CandlestickChart({ data }: CandlestickChartProps) {
-  // Format data for Recharts
-  const chartData = useMemo(() => {
-    return data.map((d) => ({
-      ...d,
-      date: new Date(d.timestamp).toLocaleDateString(undefined, {
-        month: "short",
-        day: "numeric",
-      }),
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!chartContainerRef.current || !data || data.length === 0) return;
+
+    // Create chart instance
+    const chart = createChart(chartContainerRef.current, {
+      layout: {
+        background: { type: ColorType.Solid, color: "transparent" },
+        textColor: "rgba(255, 255, 255, 0.5)",
+      },
+      grid: {
+        vertLines: { color: "rgba(255, 255, 255, 0.05)" },
+        horzLines: { color: "rgba(255, 255, 255, 0.05)" },
+      },
+      crosshair: {
+        mode: CrosshairMode.Normal,
+      },
+      rightPriceScale: {
+        borderColor: "rgba(255, 255, 255, 0.1)",
+      },
+      timeScale: {
+        borderColor: "rgba(255, 255, 255, 0.1)",
+        timeVisible: false,
+        secondsVisible: false,
+      },
+      autoSize: true, // Automatically handles resize
+    });
+
+    // Add candlestick series
+    const candlestickSeries = chart.addSeries(CandlestickSeries, {
+      upColor: "#22c55e",
+      downColor: "#ef4444",
+      borderVisible: false,
+      wickUpColor: "#22c55e",
+      wickDownColor: "#ef4444",
+    });
+
+    // Format data for lightweight-charts
+    const formattedData = data.map((d) => {
+      // Lightweight charts expects time as a string 'YYYY-MM-DD' for daily data
+      // Or Unix timestamp for intraday. We'll use YYYY-MM-DD for consistency
+      const dObj = new Date(d.timestamp);
+      return {
+        time: dObj.toISOString().split('T')[0] as any,
+        open: d.open,
+        high: d.high,
+        low: d.low,
+        close: d.close,
+      };
+    }).sort((a, b) => a.time.localeCompare(b.time));
+
+    // Remove duplicates which lightweight-charts rejects
+    const uniqueData = formattedData.filter((v, i, a) => a.findIndex(t => (t.time === v.time)) === i);
+
+    candlestickSeries.setData(uniqueData);
+
+    // Optional: Add volume as a histogram at the bottom
+    const volumeSeries = chart.addSeries(HistogramSeries, {
+      priceFormat: {
+        type: 'volume',
+      },
+      priceScaleId: '', // Set as an overlay
+    });
+    
+    // Scale volume to be at the bottom 20% of the chart
+    chart.priceScale('').applyOptions({
+      scaleMargins: {
+        top: 0.8,
+        bottom: 0,
+      },
+    });
+
+    const formattedVolume = uniqueData.map((d, idx) => ({
+      time: d.time,
+      value: data[idx].volume,
+      color: d.close >= d.open ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
     }));
+    
+    volumeSeries.setData(formattedVolume);
+
+    // Cleanup on unmount
+    return () => {
+      chart.remove();
+    };
   }, [data]);
 
-  if (!data || data.length === 0) return null;
-
-  // Calculate domain for Y axis to add padding
-  const minLow = Math.min(...data.map((d) => d.low));
-  const maxHigh = Math.max(...data.map((d) => d.high));
-  const padding = (maxHigh - minLow) * 0.1;
-  const domain = [minLow - padding, maxHigh + padding];
-
-  return (
-    <div className="w-full h-full text-xs font-mono">
-      <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />
-          <XAxis 
-            dataKey="date" 
-            stroke="rgba(255,255,255,0.3)" 
-            tick={{ fill: "rgba(255,255,255,0.5)" }} 
-            tickLine={false}
-            axisLine={false}
-          />
-          <YAxis 
-            domain={domain} 
-            stroke="rgba(255,255,255,0.3)" 
-            tick={{ fill: "rgba(255,255,255,0.5)" }} 
-            tickFormatter={(val) => `$${val.toFixed(0)}`}
-            tickLine={false}
-            axisLine={false}
-            orientation="right"
-          />
-          <Tooltip
-            content={({ active, payload }) => {
-              if (active && payload && payload.length) {
-                const d = payload[0].payload;
-                const isBull = d.close >= d.open;
-                return (
-                  <div className="bg-surface-800 border border-border p-2 rounded-lg shadow-lg">
-                    <p className="text-text-muted mb-1">{d.date}</p>
-                    <p>Open:  <span className="text-text-primary">{formatCurrency(d.open)}</span></p>
-                    <p>High:  <span className="text-text-primary">{formatCurrency(d.high)}</span></p>
-                    <p>Low:   <span className="text-text-primary">{formatCurrency(d.low)}</span></p>
-                    <p>Close: <span className={isBull ? "text-bull" : "text-bear"}>{formatCurrency(d.close)}</span></p>
-                  </div>
-                );
-              }
-              return null;
-            }}
-          />
-          <Bar
-            dataKey={["low", "high"]}
-            shape={<Candlestick />}
-            isAnimationActive={false}
-          />
-        </ComposedChart>
-      </ResponsiveContainer>
-    </div>
-  );
+  return <div ref={chartContainerRef} className="w-full h-full" />;
 }

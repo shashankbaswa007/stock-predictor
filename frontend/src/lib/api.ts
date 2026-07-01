@@ -60,6 +60,12 @@ export async function fetchQuote(ticker: string) {
   return res.json();
 }
 
+export async function fetchNews(ticker: string, count = 8) {
+  const res = await fetch(`/api/market/news?ticker=${ticker}&count=${count}`);
+  if (!res.ok) throw new Error(`News error: ${res.status}`);
+  return res.json();
+}
+
 // ── Portfolio API ────────────────────────────────────────────────────────────
 
 export async function fetchPortfolio() {

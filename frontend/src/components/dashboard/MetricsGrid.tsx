@@ -62,16 +62,16 @@ export function MetricsGrid({ ticker }: MetricsGridProps) {
   ];
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2" id="metrics-grid">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3" id="metrics-grid">
       {metrics.map((m) => (
-        <div key={m.label} className="metric-card group">
-          <div className="flex items-center gap-1.5 text-text-muted mb-1">
-            <span className="opacity-60 group-hover:opacity-100 transition-opacity">
+        <div key={m.label} className="metric-card group bg-surface-800/80 hover:bg-surface-800 transition-colors border border-border/50 hover:border-border p-4 rounded-xl">
+          <div className="flex items-center gap-1.5 text-text-muted mb-2">
+            <span className="opacity-70 group-hover:opacity-100 transition-opacity text-accent">
               {m.icon}
             </span>
-            <span className="text-[11px] font-medium">{m.label}</span>
+            <span className="text-xs font-semibold tracking-wide uppercase">{m.label}</span>
           </div>
-          <p className="text-sm font-mono font-semibold text-text-primary">
+          <p className="text-lg font-mono font-bold text-text-primary tracking-tight">
             {m.value}
           </p>
         </div>
