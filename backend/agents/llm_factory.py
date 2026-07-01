@@ -12,7 +12,7 @@ def get_llm():
         )
     elif settings.groq_api_key:
         return ChatGroq(
-            model="llama3-70b-8192",
+            model="llama-3.3-70b-versatile",
             api_key=settings.groq_api_key,
             temperature=0.2
         )

@@ -57,9 +57,16 @@ class Settings(BaseSettings):
     model_config = {
         "env_file": ".env",
         "env_file_encoding": "utf-8",
+        "extra": "ignore",
         "case_sensitive": False,
     }
 
 
 # Singleton instance — import this everywhere
 settings = Settings()
+
+import os
+if settings.pinecone_api_key:
+    os.environ["PINECONE_API_KEY"] = settings.pinecone_api_key
+if settings.groq_api_key:
+    os.environ["GROQ_API_KEY"] = settings.groq_api_key
