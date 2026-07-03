@@ -127,6 +127,49 @@ def retrieve_context(query: str, ticker: str, k: int = 3) -> List[Dict]:
     # Perform similarity search
     results = store.similarity_search(query, k=k, filter=filter_dict)
     
+    # Dynamic Insertion: If no results found for this ticker, fetch and embed them now
+    if len(results) == 0:
+        print(f"No documents found for {ticker} in Pinecone. Fetching dynamically...")
+        docs: List[Document] = []
+        
+        # Load generic company summaries
+        excerpts = generate_10k_excerpts(ticker)
+        for ex in excerpts:
+            docs.append(
+                Document(
+                    page_content=ex["content"],
+                    metadata={
+                        "ticker": ticker.upper(),
+                        "source": "10-K",
+                        "section": ex["section"],
+                        "fiscal_year": ex["fiscal_year"],
+                        "doc_type": "fundamental"
+                    }
+                )
+            )
+            
+        # Load actual News Headlines
+        news = generate_news(ticker, count=5)
+        for article in news:
+            docs.append(
+                Document(
+                    page_content=article["headline"],
+                    metadata={
+                        "ticker": ticker.upper(),
+                        "source": article["source"],
+                        "sentiment": article["sentiment"],
+                        "published_at": article["published_at"],
+                        "doc_type": "news"
+                    }
+                )
+            )
+            
+        if docs:
+            store.add_documents(docs)
+            print(f"Successfully embedded {len(docs)} documents for {ticker}. Retrying search...")
+            time.sleep(1) # Wait briefly for Pinecone to index
+            results = store.similarity_search(query, k=k, filter=filter_dict)
+    
     return [
         {
             "content": doc.page_content,
