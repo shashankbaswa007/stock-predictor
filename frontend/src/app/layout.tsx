@@ -32,7 +32,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark" suppressHydrationWarning>
       <head>
         {/* Google Fonts — Inter (UI) + JetBrains Mono (data) */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -42,7 +42,10 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="min-h-screen bg-surface-950 text-text-primary font-sans antialiased overflow-hidden">
+      <body 
+        className="min-h-screen bg-surface-950 text-text-primary font-sans antialiased overflow-hidden"
+        suppressHydrationWarning
+      >
         {children}
       </body>
     </html>
