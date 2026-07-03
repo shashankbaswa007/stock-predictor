@@ -46,8 +46,13 @@ export function MetricsGrid({ ticker }: MetricsGridProps) {
 
   if (loading || !data) {
     return (
-      <div className="flex items-center justify-center p-6 h-[80px] bg-surface-800/50 rounded-xl border border-border">
-        <Spinner size="sm" />
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        {[...Array(6)].map((_, i) => (
+          <div key={i} className="bg-surface-800/50 border border-border/50 p-4 rounded-xl h-[72px] animate-pulse">
+            <div className="w-16 h-3 bg-surface-700/50 rounded mb-3"></div>
+            <div className="w-24 h-5 bg-surface-700/50 rounded"></div>
+          </div>
+        ))}
       </div>
     );
   }

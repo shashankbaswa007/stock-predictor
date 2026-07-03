@@ -15,6 +15,7 @@ import { Group, Panel, Separator } from "react-resizable-panels";
 import { useAppStore } from "@/store/useAppStore";
 import { DashboardPanel } from "@/components/dashboard/DashboardPanel";
 import { ChatPanel } from "@/components/chat/ChatPanel";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { checkBackendHealth } from "@/lib/api";
 import {
   Activity,
@@ -113,7 +114,9 @@ export default function HomePage() {
           <Panel defaultSize={65} minSize={30}>
             <div className="h-full p-3 pr-1.5 overflow-hidden">
               <div className="h-full glass-panel p-4 overflow-hidden flex flex-col">
-                <DashboardPanel />
+                <ErrorBoundary>
+                  <DashboardPanel />
+                </ErrorBoundary>
               </div>
             </div>
           </Panel>
@@ -127,7 +130,9 @@ export default function HomePage() {
           <Panel defaultSize={35} minSize={25}>
             <div className="h-full p-3 pl-1.5 overflow-hidden">
               <div className="h-full glass-panel overflow-hidden flex flex-col">
-                <ChatPanel />
+                <ErrorBoundary>
+                  <ChatPanel />
+                </ErrorBoundary>
               </div>
             </div>
           </Panel>
