@@ -15,6 +15,9 @@ from api.routes_market import router as market_router
 from api.routes_chat import router as chat_router
 from api.routes_portfolio import router as portfolio_router
 from api.routes_ws import router as ws_router
+from middleware.rate_limit import RateLimitMiddleware
+
+from fastapi.responses import JSONResponse
 
 # ── App Initialization ───────────────────────────────────────────────────────
 app = FastAPI(
@@ -22,6 +25,14 @@ app = FastAPI(
     description="Dual-engine, multi-agent stock prediction backend",
     version="0.1.0",
 )
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    return JSONResponse(
+        status_code=500,
+        content={"error": str(exc), "type": type(exc).__name__, "message": "An internal server error occurred."}
+    )
+
 
 # ── CORS ──────────────────────────────────────────────────────────────────────
 app.add_middleware(
@@ -31,6 +42,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ── Rate Limiting ─────────────────────────────────────────────────────────────
+app.add_middleware(RateLimitMiddleware, requests_per_minute=200)
 
 # ── Route Registration ───────────────────────────────────────────────────────
 app.include_router(market_router, prefix="/api/market", tags=["Market Data"])
