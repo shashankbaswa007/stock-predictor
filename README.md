@@ -81,6 +81,15 @@ graph TB
     WS_BE --> MD
 ```
 
+## 🛡️ Reliability & Consistency
+
+This application is engineered for production-grade reliability across three pillars:
+
+- **Data Resiliency (Graceful Degradation)**: The market data pipeline uses an **API Cascade** pattern. It attempts to fetch high-fidelity data from premium endpoints (Polygon/Finnhub) first. If rate limits are hit or the service goes down, it seamlessly falls back to `yfinance`. A 5-minute TTL cache protects downstream providers from being overwhelmed.
+- **LLM Consistency (Hallucination Prevention)**: The AI agents use **Structured Output Validation** (Pydantic + LangChain) to force deterministic JSON responses from the LLMs. If the LLM fails validation or lacks context, a graceful fallback mechanism intercepts the error and returns a safe, neutral response rather than crashing the UI. Furthermore, the Pinecone Vector Database is configured to dynamically embed missing tickers on the fly to prevent empty context windows.
+- **Machine Learning Robustness**: The Quant Agent utilizes **Ridge Regression (L2 Regularized)**. By strictly enforcing a chronological train/test split (preventing look-ahead bias) and penalizing correlated technical indicators, the model avoids the wild, over-confident hallucinations often seen in poorly tuned Neural Networks.
+- **System Stability**: The FastAPI backend implements a global exception handler and rate-limiting middleware, while the Next.js frontend wraps critical components in React `ErrorBoundary` modules to isolate component failures.
+
 ## 🛠 Setup Instructions
 
 ### 1. Prerequisites
