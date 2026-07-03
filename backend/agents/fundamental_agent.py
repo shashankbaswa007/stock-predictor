@@ -44,9 +44,18 @@ def analyze_fundamentals(query: str, ticker: str) -> Dict[str, Any]:
         {context_text}
         
         Determine the overall sentiment and provide a concise summary.
+        IMPORTANT: If the provided text does not contain relevant information about {ticker}, you MUST return a sentiment_score of 0.0, a sentiment_label of "NEUTRAL", and explain in the summary that no relevant fundamental data was found.
         """
         
-        analysis = structured_llm.invoke(prompt)
+        try:
+            analysis = structured_llm.invoke(prompt)
+        except Exception as schema_err:
+            print(f"Schema validation failed: {schema_err}. Returning neutral fallback.")
+            analysis = FundamentalAnalysis(
+                sentiment_score=0.0,
+                sentiment_label="NEUTRAL",
+                summary=f"No relevant fundamental data could be structured for {ticker}."
+            )
         
         return {
             "agent": "fundamental",
