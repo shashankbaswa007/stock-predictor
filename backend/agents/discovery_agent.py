@@ -8,8 +8,8 @@ when the user asks broad questions like "Which company should I invest in?".
 from typing import Dict, Any, List
 from services.mock_data import generate_quote
 
-# A curated basket of high-volume tech stocks for screening
-CURATED_BASKET = ["AAPL", "MSFT", "NVDA", "TSLA", "GOOGL", "META", "AMZN"]
+# A curated basket of high-volume stocks across various sectors for screening
+CURATED_BASKET = ["AAPL", "MSFT", "NVDA", "TSLA", "GOOGL", "JPM", "JNJ", "WMT", "XOM", "UNH", "V"]
 
 def analyze_discovery() -> Dict[str, Any]:
     """
@@ -36,5 +36,5 @@ def analyze_discovery() -> Dict[str, Any]:
     return {
         "basket": CURATED_BASKET,
         "metrics": discovery_data,
-        "agent_note": "Discovery agent has screened the curated basket of top tech stocks."
+        "agent_note": "Discovery agent has screened the curated basket of top stocks across multiple sectors."
     }

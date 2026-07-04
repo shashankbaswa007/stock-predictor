@@ -18,9 +18,13 @@ const POPULAR_TICKERS = [
   { symbol: "NVDA", name: "NVIDIA Corp." },
   { symbol: "GOOGL", name: "Alphabet Inc." },
   { symbol: "AMZN", name: "Amazon.com Inc." },
-  { symbol: "META", name: "Meta Platforms" },
   { symbol: "TSLA", name: "Tesla Inc." },
   { symbol: "JPM", name: "JPMorgan Chase" },
+  { symbol: "JNJ", name: "Johnson & Johnson" },
+  { symbol: "WMT", name: "Walmart Inc." },
+  { symbol: "XOM", name: "Exxon Mobil Corp." },
+  { symbol: "UNH", name: "UnitedHealth Group" },
+  { symbol: "V", name: "Visa Inc." },
 ];
 
 export function TickerSearch() {
