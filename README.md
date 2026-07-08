@@ -12,11 +12,13 @@ An AI-powered stock market research platform that uses a multi-agent architectur
 ## 🚀 Features
 
 - **Multi-Agent AI Backend**:
-  - **Quant Agent**: Uses Machine Learning (Ridge Regression) on time-series data enriched with technical indicators (RSI, MACD, BB) to forecast prices.
-  - **Fundamental Agent**: Leverages a Retrieval-Augmented Generation (RAG) pipeline over SEC 10-K filings and news using Pinecone Vector DB and LangChain.
-  - **Risk Agent**: Analyzes portfolio state (e.g., Value at Risk, Diversification, Concentration).
-  - **Discovery Agent**: Screens a basket of tech stocks for strong market fundamentals.
-  - **Executive Agent**: Synthesizes inputs from sub-agents using a real LLM (Gemini/Groq) to provide structured buy/sell/hold signals with citations.
+  The application utilizes a distributed, multi-agent orchestration pattern to ensure high-accuracy responses across different financial domains:
+  - **1. Intent Router**: The entry point for user queries. It uses NLP keyword heuristics to classify user intents and route the request to the appropriate specialized sub-agent (Quant, Fundamental, Risk, or Discovery).
+  - **2. Quant Agent (Short-Term)**: Specializes in technical analysis and statistical forecasting. It runs a custom Machine Learning model (L2 Regularized Ridge Regression) trained dynamically on historical OHLCV data. It computes 25+ technical indicators (RSI, MACD, Bollinger Bands) to provide short-term (5-day) price predictions and confluence signals.
+  - **3. Fundamental Agent (Long-Term)**: Specializes in qualitative analysis. It leverages a Retrieval-Augmented Generation (RAG) pipeline to query SEC 10-K filings and recent financial news from a Pinecone Vector Database. It uses a LangChain LLM to parse this unstructured data and output strict, Pydantic-validated JSON sentiment scores.
+  - **4. Risk Agent (Portfolio)**: Specializes in portfolio safety. It ingests the user's current holdings and calculates standard financial risk metrics, including 95% Value at Risk (VaR), portfolio beta, and sector concentration risks.
+  - **5. Discovery Agent (Market Screener)**: Specializes in market-wide screening. It scans a curated, multi-sector basket of blue-chip stocks to find high-performing equities based on real-time P/E ratios, EPS, and market capitalization.
+  - **6. Executive Agent (Synthesizer)**: The final orchestrator. It receives the highly structured output from the designated sub-agent and uses an LLM (Gemini/Groq) to synthesize it into a coherent, human-readable narrative. It outputs actionable BUY/SELL/HOLD signals, distinct reasoning points, and determines the necessary UI state changes (e.g., automatically switching the dashboard to a new ticker).
 - **Real-Time Interactive UI**:
   - Split-pane Next.js dashboard featuring TradingView Lightweight Charts.
   - Live price WebSocket streaming.
