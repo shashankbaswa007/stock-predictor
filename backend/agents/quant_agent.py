@@ -28,11 +28,20 @@ def analyze_quant(ticker: str) -> Dict[str, Any]:
         df_enriched = compute_all(df)
         latest = df_enriched.iloc[-1]
         
+        # Helper to safely extract float indicators (handles NaN and non-numeric)
+        def _safe_indicator(val, default: float = 0.0) -> float:
+            try:
+                f = float(val)
+                import math
+                return default if math.isnan(f) else f
+            except (TypeError, ValueError):
+                return default
+        
         indicators = {
-            "rsi": float(latest["rsi"]) if not type(latest["rsi"]) == str else 50.0,
-            "macd": float(latest["macd"]),
-            "macd_signal": float(latest["macd_signal"]),
-            "bb_percent_b": float(latest["bb_percent_b"])
+            "rsi": _safe_indicator(latest.get("rsi"), 50.0),
+            "macd": _safe_indicator(latest.get("macd")),
+            "macd_signal": _safe_indicator(latest.get("macd_signal")),
+            "bb_percent_b": _safe_indicator(latest.get("bb_percent_b"), 0.5)
         }
         
         # 4. Determine trend agreement
