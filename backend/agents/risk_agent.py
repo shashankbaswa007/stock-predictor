@@ -29,7 +29,24 @@ def analyze_risk(portfolio: Dict[str, Any], target_ticker: str = None) -> Dict[s
             }
             
         # 1. Diversification Check
-        weights = {h["ticker"]: h["value"] / total_value for h in holdings}
+        # Compute value from shares * price (handle both camelCase and snake_case keys)
+        def _holding_value(h: Dict) -> float:
+            shares = h.get("shares", 0)
+            price = h.get("currentPrice") or h.get("current_price") or h.get("price", 0)
+            return float(shares) * float(price) if shares and price else h.get("value", 0)
+        
+        weights = {}
+        for h in holdings:
+            val = _holding_value(h)
+            if total_value > 0:
+                weights[h["ticker"]] = val / total_value
+        
+        if not weights:
+            return {
+                "agent": "risk",
+                "summary": "Could not compute portfolio weights. Check holdings data."
+            }
+        
         max_weight_ticker = max(weights, key=weights.get)
         max_weight = weights[max_weight_ticker]
         
