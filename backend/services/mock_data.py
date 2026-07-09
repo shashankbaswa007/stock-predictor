@@ -294,5 +294,6 @@ def generate_10k_excerpts(ticker: str) -> List[Dict]:
             "fiscal_year": datetime.now().year - 1,
             "doc_type": "10-K",
         }]
-    except:
+    except Exception as e:
+        print(f"Error fetching 10-K excerpts for {ticker}: {e}")
         return []
