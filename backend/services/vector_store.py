@@ -10,7 +10,7 @@ import os
 from typing import List, Dict
 import time
 from langchain_core.documents import Document
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_pinecone import PineconeVectorStore
 from pinecone import Pinecone, ServerlessSpec
 
