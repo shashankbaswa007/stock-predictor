@@ -92,6 +92,66 @@ This application is engineered for production-grade reliability across three pil
 - **Machine Learning Robustness**: The Quant Agent utilizes **Ridge Regression (L2 Regularized)**. By strictly enforcing a chronological train/test split (preventing look-ahead bias) and penalizing correlated technical indicators, the model avoids the wild, over-confident hallucinations often seen in poorly tuned Neural Networks.
 - **System Stability**: The FastAPI backend implements a global exception handler and rate-limiting middleware, while the Next.js frontend wraps critical components in React `ErrorBoundary` modules to isolate component failures.
 
+## 📦 Tech Stack
+
+| Layer | Technology | Purpose |
+|-------|-----------|---------|
+| **Frontend** | Next.js 15, React 19, TypeScript | Server-side rendered dashboard |
+| **State Management** | Zustand | Lightweight global state |
+| **Charts** | TradingView Lightweight Charts | Real-time candlestick charts |
+| **Styling** | Tailwind CSS | Utility-first responsive design |
+| **Backend** | FastAPI, Python 3.10+ | Async REST API + WebSocket server |
+| **ML Engine** | scikit-learn (Ridge Regression) | Time-series price forecasting |
+| **LLM Providers** | Google Gemini / Groq (LLaMA) | AI synthesis and natural language generation |
+| **RAG Pipeline** | LangChain + Pinecone + HuggingFace | Retrieval-Augmented Generation over SEC filings |
+| **Market Data** | Polygon.io → Finnhub → yfinance | Multi-tier API cascade with graceful fallback |
+| **Containerization** | Docker + Docker Compose | One-command deployment |
+
+## 📂 Project Structure
+
+```
+Stock_predictor/
+├── backend/
+│   ├── agents/                # Multi-Agent System
+│   │   ├── intent_router.py   # NLP keyword heuristic router
+│   │   ├── quant_agent.py     # Short-term ML + technical analysis
+│   │   ├── fundamental_agent.py # Long-term RAG + LLM analysis
+│   │   ├── risk_agent.py      # Portfolio risk (VaR, concentration)
+│   │   ├── discovery_agent.py # Market-wide stock screener
+│   │   ├── executive_agent.py # LLM orchestrator + synthesizer
+│   │   └── llm_factory.py    # Gemini/Groq/OpenAI abstraction
+│   ├── api/                   # FastAPI Route Handlers
+│   │   ├── routes_market.py   # OHLCV, quotes, news, predictions
+│   │   ├── routes_chat.py     # Multi-agent chat pipeline
+│   │   ├── routes_portfolio.py # Portfolio CRUD + risk metrics
+│   │   └── routes_ws.py       # WebSocket live price streaming
+│   ├── services/              # Core Business Logic
+│   │   ├── ml_model.py        # Ridge Regression forecaster
+│   │   ├── technical_indicators.py # RSI, MACD, Bollinger Bands, SMA
+│   │   ├── vector_store.py    # Pinecone RAG vector database
+│   │   └── mock_data.py       # Market data integration layer
+│   ├── middleware/             # Request middleware
+│   │   └── rate_limit.py      # IP-based rate limiting
+│   ├── tests/                 # pytest test suite
+│   ├── config.py              # Pydantic Settings (env management)
+│   ├── main.py                # FastAPI application entry point
+│   ├── Dockerfile             # Backend container image
+│   └── requirements.txt       # Python dependencies
+├── frontend/
+│   └── src/
+│       ├── app/               # Next.js App Router pages
+│       ├── components/        # React UI components
+│       │   ├── dashboard/     # Charts, ticker search, metrics
+│       │   ├── chat/          # AI chat panel, messages, input
+│       │   ├── portfolio/     # Holdings table, risk gauges
+│       │   └── ui/            # Shared UI primitives
+│       ├── store/             # Zustand global state
+│       └── lib/               # Utility functions
+├── docker-compose.yml         # Multi-container orchestration
+├── .gitignore
+└── README.md
+```
+
 ## 🛠 Setup Instructions
 
 ### 1. Prerequisites
@@ -133,13 +193,37 @@ npm install
 npm run dev
 ```
 
+## 🔌 API Reference
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/health` | GET | Server health check & config status |
+| `/api/market/history` | GET | Historical OHLCV + technical indicators |
+| `/api/market/quote` | GET | Real-time quote snapshot |
+| `/api/market/news` | GET | Company news headlines |
+| `/api/market/predict` | GET | ML-based price forecast |
+| `/api/chat/` | POST | Multi-agent AI analysis pipeline |
+| `/api/portfolio/` | GET | Portfolio holdings & summary |
+| `/api/portfolio/risk` | GET | Portfolio risk metrics |
+| `/ws/prices` | WS | Live price WebSocket stream |
+
 ## 🧪 Testing
 
 The backend includes a comprehensive `pytest` suite for the ML models, intent routers, and technical indicators.
 ```bash
 cd backend
+source .venv/bin/activate
 pytest tests/ -v
 ```
 
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/your-feature`)
+3. Commit your changes (`git commit -m 'feat: Add some feature'`)
+4. Push to the branch (`git push origin feature/your-feature`)
+5. Open a Pull Request
+
 ## 📝 License
 Educational Project. For informational purposes only. Not financial advice.
+
