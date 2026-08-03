@@ -226,12 +226,30 @@ The project is designed for seamless, free-tier deployment using Vercel (Fronten
 
 ## 🧪 Testing
 
+The project utilizes automated testing across both the frontend and backend.
+
+### Backend (Pytest)
 The backend includes a comprehensive `pytest` suite for the ML models, intent routers, and technical indicators.
 ```bash
 cd backend
 source .venv/bin/activate
 pytest tests/ -v
 ```
+
+### Frontend (Playwright)
+The frontend utilizes **Playwright** for End-to-End (E2E) UI testing, ensuring the chat interfaces, dashboards, and core components render and function properly.
+```bash
+cd frontend
+npx playwright test
+```
+
+## 🚀 CI/CD & Code Quality
+
+This project is configured with a robust **GitHub Actions** CI/CD pipeline (`.github/workflows/main.yml`) that triggers on every push and pull request. 
+
+- **Backend Linting**: Enforced via **Ruff**, providing blazingly fast Python linting and formatting. 
+- **Frontend Linting**: Managed by **ESLint** (Next.js 15 Flat Config) and **Prettier** to enforce strict TypeScript safety and consistent styling.
+- **Automated Testing**: Both Pytest and Playwright test suites are automatically executed in the CI pipeline to prevent regressions.
 
 ## 🤝 Contributing
 
