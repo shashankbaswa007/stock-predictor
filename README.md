@@ -193,6 +193,23 @@ npm install
 npm run dev
 ```
 
+## 🚀 Deployment (Vercel + Render)
+
+The project is designed for seamless, free-tier deployment using Vercel (Frontend) and Render (Backend).
+
+### Backend (Render)
+1. Fork this repository.
+2. Sign up on [Render](https://render.com) and create a **New Web Service**.
+3. Connect your repository. Render will automatically detect the `render.yaml` Blueprint file.
+4. Add your API keys (e.g., `GEMINI_API_KEY`) as environment variables in the Render dashboard.
+
+### Frontend (Vercel)
+1. Sign up on [Vercel](https://vercel.com) and click **Add New Project**.
+2. Import your repository. The framework preset (Next.js) will be automatically detected.
+3. In the Environment Variables section, add:
+   - `NEXT_PUBLIC_API_URL`: Your Render backend URL (e.g., `https://trading-copilot-backend.onrender.com`).
+4. Click **Deploy**.
+
 ## 🔌 API Reference
 
 | Endpoint | Method | Description |
