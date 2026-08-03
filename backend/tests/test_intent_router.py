@@ -28,5 +28,5 @@ def test_route_intent_view_mode_fallback():
     assert route_intent("tell me more", {"view_mode": "portfolio"}) == "risk"
 
 def test_route_intent_default_fallback():
-    # When no keywords and no view_mode match, default to fundamental
-    assert route_intent("tell me more", {}) == "fundamental"
+    # When no keywords and no view_mode match, default to general
+    assert route_intent("tell me more", {}) == "general"
