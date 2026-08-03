@@ -65,8 +65,18 @@ class Settings(BaseSettings):
 # Singleton instance — import this everywhere
 settings = Settings()
 
-import os
-if settings.pinecone_api_key:
-    os.environ["PINECONE_API_KEY"] = settings.pinecone_api_key
-if settings.groq_api_key:
-    os.environ["GROQ_API_KEY"] = settings.groq_api_key
+
+def export_env_vars() -> None:
+    """Export required API keys to os.environ for third-party SDKs (Pinecone, Groq)
+    that read credentials from environment variables directly."""
+    import os
+    if settings.pinecone_api_key:
+        os.environ["PINECONE_API_KEY"] = settings.pinecone_api_key
+    if settings.groq_api_key:
+        os.environ["GROQ_API_KEY"] = settings.groq_api_key
+    if settings.gemini_api_key:
+        os.environ["GOOGLE_API_KEY"] = settings.gemini_api_key
+
+
+# Run on import to ensure env vars are set for downstream libraries
+export_env_vars()
