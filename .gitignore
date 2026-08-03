@@ -1,13 +1,20 @@
-# Python
+# ── Python ──────────────────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
 *$py.class
 .venv/
 env/
 venv/
-.env
+*.egg-info/
+dist/
+build/
 
-# Next.js / Node
+# ── Environment ─────────────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# ── Next.js / Node ──────────────────────────────────────────────────────────
 node_modules/
 .next/
 out/
@@ -18,6 +25,21 @@ yarn-debug.log*
 yarn-error.log*
 .pnp.*
 
-# OS
+# ── Testing & Coverage ─────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+*.cover
+
+# ── IDE ─────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ── OS ──────────────────────────────────────────────────────────────────────
 .DS_Store
+Thumbs.db
 *.pem
