@@ -144,7 +144,7 @@ export function DashboardPanel() {
             <span className="text-text-secondary font-medium">Finnhub Real-Time</span>
             <span className="mx-1 text-border">•</span>
             <span className="text-text-muted/70">Last updated:</span>
-            <span className="text-text-secondary font-mono">
+            <span className="text-text-secondary font-mono" suppressHydrationWarning>
               {new Date().toLocaleTimeString([], { hour12: false })}
             </span>
           </div>
