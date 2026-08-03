@@ -5,53 +5,54 @@ Evaluates portfolio state (e.g., VaR, position sizing, diversification).
 Returns a risk analysis summary for the Executive Agent.
 """
 
-from typing import Dict, Any, List
+from typing import Any, Dict, List
+
 
 def analyze_risk(portfolio: Dict[str, Any], target_ticker: str = None) -> Dict[str, Any]:
     """
     Analyze portfolio risk and position sizing.
-    
+
     Args:
         portfolio: The current portfolio state from the frontend context
         target_ticker: Optional ticker the user is asking about
-        
+
     Returns:
         Dict with risk metrics and summary
     """
     try:
         holdings: List[Dict] = portfolio.get("holdings", [])
         total_value = portfolio.get("total_value", 0.0)
-        
+
         if total_value == 0 or not holdings:
             return {
                 "agent": "risk",
                 "summary": "Portfolio is currently empty. No risk analysis available."
             }
-            
+
         # 1. Diversification Check
         # Compute value from shares * price (handle both camelCase and snake_case keys)
         def _holding_value(h: Dict) -> float:
             shares = h.get("shares", 0)
             price = h.get("currentPrice") or h.get("current_price") or h.get("price", 0)
             return float(shares) * float(price) if shares and price else h.get("value", 0)
-        
+
         weights = {}
         for h in holdings:
             val = _holding_value(h)
             if total_value > 0:
                 weights[h["ticker"]] = val / total_value
-        
+
         if not weights:
             return {
                 "agent": "risk",
                 "summary": "Could not compute portfolio weights. Check holdings data."
             }
-        
+
         max_weight_ticker = max(weights, key=weights.get)
         max_weight = weights[max_weight_ticker]
-        
+
         concentration_warning = max_weight > 0.25
-        
+
         # 2. Target Ticker specific risk
         target_analysis = ""
         if target_ticker:
@@ -65,17 +66,17 @@ def analyze_risk(portfolio: Dict[str, Any], target_ticker: str = None) -> Dict[s
                     target_analysis += "There is room to add to this position while maintaining diversification."
             else:
                 target_analysis = f"You have no current exposure to {target_ticker}. Adding it would increase diversification."
-                
+
         # 3. VaR (Mock Value at Risk 95%)
         # In a real app, this would use covariance matrices of the holdings.
         mock_var_95 = total_value * 0.025 # assume 2.5% daily VaR
-        
+
         summary = f"Portfolio VaR (95%) is estimated at ${mock_var_95:,.2f}. "
         if concentration_warning:
             summary += f"Warning: High concentration in {max_weight_ticker} ({max_weight*100:.1f}%). "
-        
+
         summary += target_analysis
-        
+
         return {
             "agent": "risk",
             "total_value": total_value,

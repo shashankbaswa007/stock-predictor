@@ -1,0 +1,32 @@
+[project]
+name = "trading-copilot-backend"
+version = "0.1.0"
+description = "FastAPI Backend for AI Trading Co-Pilot"
+requires-python = ">=3.10"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "C",  # flake8-comprehensions
+    "B",  # flake8-bugbear
+]
+ignore = [
+    "E501",  # line too long, handled by black
+    "B008",  # do not perform function calls in argument defaults (FastAPI Depends() is an exception)
+    "B904",  # raise from err not strictly required for HTTPExceptions
+    "C901",  # complex functions allowed
+]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = "-ra -q --asyncio-mode=auto"
+testpaths = [
+    "tests",
+]

@@ -5,8 +5,9 @@ All secrets and tunables are loaded from environment variables (or .env file).
 Every field has a safe default so the app runs fully in mock mode out of the box.
 """
 
-from pydantic_settings import BaseSettings
 from typing import List
+
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):

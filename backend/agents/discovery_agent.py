@@ -5,7 +5,8 @@ Evaluates a curated list of top stocks to provide market-wide recommendations
 when the user asks broad questions like "Which company should I invest in?".
 """
 
-from typing import Dict, Any, List
+from typing import Any, Dict
+
 from services.mock_data import generate_quote
 
 # A curated basket of high-volume stocks across various sectors for screening
@@ -17,7 +18,7 @@ def analyze_discovery() -> Dict[str, Any]:
     Returns a dictionary mapping tickers to their screening metrics.
     """
     discovery_data = {}
-    
+
     for ticker in CURATED_BASKET:
         try:
             quote = generate_quote(ticker)
@@ -32,7 +33,7 @@ def analyze_discovery() -> Dict[str, Any]:
         except Exception as e:
             print(f"DiscoveryAgent: Error fetching {ticker}: {e}")
             discovery_data[ticker] = {"error": str(e)}
-            
+
     return {
         "basket": CURATED_BASKET,
         "metrics": discovery_data,

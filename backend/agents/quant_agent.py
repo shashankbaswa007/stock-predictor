@@ -5,29 +5,31 @@ Wraps the ML model and technical indicators from Phase 2.
 Returns a quantitative analysis summary for the Executive Agent.
 """
 
-from typing import Dict, Any
-from services.mock_data import generate_ohlcv
+from typing import Any, Dict
+
 from services.ml_model import quick_predict
+from services.mock_data import generate_ohlcv
 from services.technical_indicators import compute_all
+
 
 def analyze_quant(ticker: str) -> Dict[str, Any]:
     """
     Run full quantitative analysis on a ticker.
-    
+
     Returns:
         Dict with ML predictions, signals, and technical data.
     """
     try:
         # 1. Fetch 1 year of daily data for the model
         df = generate_ohlcv(ticker, period="1y", interval="1d")
-        
+
         # 2. Run the ML forecast (5 days ahead)
         forecast = quick_predict(df, n_steps=5)
-        
+
         # 3. Get latest technical indicators
         df_enriched = compute_all(df)
         latest = df_enriched.iloc[-1]
-        
+
         # Helper to safely extract float indicators (handles NaN and non-numeric)
         def _safe_indicator(val, default: float = 0.0) -> float:
             try:
@@ -36,26 +38,26 @@ def analyze_quant(ticker: str) -> Dict[str, Any]:
                 return default if math.isnan(f) else f
             except (TypeError, ValueError):
                 return default
-        
+
         indicators = {
             "rsi": _safe_indicator(latest.get("rsi"), 50.0),
             "macd": _safe_indicator(latest.get("macd")),
             "macd_signal": _safe_indicator(latest.get("macd_signal")),
             "bb_percent_b": _safe_indicator(latest.get("bb_percent_b"), 0.5)
         }
-        
+
         # 4. Determine trend agreement
         ml_signal = forecast.get("signal", "HOLD")
         rsi_val = indicators["rsi"]
-        
+
         tech_signal = "HOLD"
         if rsi_val < 30 and indicators["macd"] > indicators["macd_signal"]:
             tech_signal = "BUY"
         elif rsi_val > 70 and indicators["macd"] < indicators["macd_signal"]:
             tech_signal = "SELL"
-            
+
         confluence = "STRONG" if ml_signal == tech_signal and ml_signal != "HOLD" else "MIXED"
-        
+
         return {
             "agent": "quant",
             "ticker": ticker,

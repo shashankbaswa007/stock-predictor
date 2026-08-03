@@ -14,10 +14,10 @@ Indicators:
   • compute_all() — Convenience function to add all indicators to OHLCV data
 """
 
+from typing import Dict, Optional
+
 import numpy as np
 import pandas as pd
-from typing import Dict, Optional, Tuple
-
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # MOVING AVERAGES
@@ -257,8 +257,5 @@ def compute_all(
     # Round all float columns to 4 decimal places for clean output
     float_cols = result.select_dtypes(include=[np.floating]).columns
     result[float_cols] = result[float_cols].round(4)
-    
-    # Replace NaN/Infinity with None for clean JSON serialization in FastAPI
-    result.replace([np.inf, -np.inf, np.nan], None, inplace=True)
 
     return result

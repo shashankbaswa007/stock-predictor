@@ -14,16 +14,15 @@ Pipeline:
   4. Prediction: Next-N candle forecast with confidence intervals
 """
 
+from typing import Dict, List, Tuple
+
 import numpy as np
 import pandas as pd
-from typing import Dict, List, Optional, Tuple
-
 from sklearn.linear_model import Ridge
-from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import mean_absolute_error, mean_squared_error
+from sklearn.preprocessing import StandardScaler
 
 from services.technical_indicators import compute_all
-
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # FEATURE ENGINEERING

@@ -6,16 +6,17 @@ fetches data from the necessary sub-agents (Quant, Fundamental, Risk),
 and synthesizes the final JSON response via the Executive Agent.
 """
 
-from typing import Dict, Any, Optional, List
+from typing import Any, Dict, List, Optional
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from agents.intent_router import route_intent, extract_ticker
-from agents.quant_agent import analyze_quant
-from agents.fundamental_agent import analyze_fundamentals
-from agents.risk_agent import analyze_risk
 from agents.discovery_agent import analyze_discovery
 from agents.executive_agent import synthesize_response
+from agents.fundamental_agent import analyze_fundamentals
+from agents.intent_router import extract_ticker, route_intent
+from agents.quant_agent import analyze_quant
+from agents.risk_agent import analyze_risk
 
 router = APIRouter()
 
@@ -60,14 +61,14 @@ async def chat_endpoint(request: ChatRequest):
             "portfolio": request.ui_context.portfolio_state
         }
         intent = route_intent(request.message, context_dict)
-        
+
         # 2. Sub-Agent Execution
         # In a real distributed system, these could run in parallel.
         quant_data = {}
         fundamental_data = {}
         risk_data = {}
         discovery_data = {}
-        
+
         if intent == "quant":
             quant_data = analyze_quant(target_ticker)
         elif intent == "fundamental":
@@ -79,7 +80,7 @@ async def chat_endpoint(request: ChatRequest):
         else:
             # For general chat, maybe we pull a tiny bit of quant data just to have context
             quant_data = analyze_quant(target_ticker)
-            
+
         # 3. Executive Synthesis
         # Pass all context to the master agent to formulate the final JSON response + UI Actions
         final_response = synthesize_response(
@@ -92,8 +93,8 @@ async def chat_endpoint(request: ChatRequest):
             discovery_data=discovery_data,
             use_mock_llm=request.use_mock_llm
         )
-        
+
         return final_response
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"AI Pipeline Error: {str(e)}")

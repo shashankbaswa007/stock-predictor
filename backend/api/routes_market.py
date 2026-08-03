@@ -8,11 +8,11 @@ Provides endpoints for:
   • ML-based price predictions
 """
 
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 
-from services.mock_data import generate_ohlcv, generate_quote, generate_news
-from services.technical_indicators import compute_all, rsi, macd, bollinger_bands
 from services.ml_model import quick_predict
+from services.mock_data import generate_news, generate_ohlcv, generate_quote
+from services.technical_indicators import compute_all
 
 router = APIRouter()
 

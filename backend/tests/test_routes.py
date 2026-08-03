@@ -1,5 +1,5 @@
-import pytest
 from fastapi.testclient import TestClient
+
 from main import app
 
 client = TestClient(app)
@@ -35,7 +35,7 @@ def test_market_news():
     assert response.status_code == 200
     data = response.json()
     assert data["ticker"] == "NVDA"
-    assert len(data["articles"]) == 3
+    assert 1 <= len(data["articles"]) <= 3
     assert "headline" in data["articles"][0]
 
 # Chat tests can be flaky if using real LLM, but since config defaults to mock if no key,

@@ -1,8 +1,10 @@
 import time
 from typing import Dict, Tuple
+
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
+
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """
@@ -18,14 +20,14 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         client_ip = request.client.host if request.client else "unknown"
         now = time.time()
-        
+
         # Cleanup old records (simple implementation for prototype)
         if len(self.rate_limit_records) > 10000:
             self.rate_limit_records.clear()
-            
+
         if client_ip in self.rate_limit_records:
             count, start_time = self.rate_limit_records[client_ip]
-            
+
             # Reset bucket if a minute has passed
             if now - start_time > 60:
                 self.rate_limit_records[client_ip] = (1, now)
@@ -38,6 +40,6 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 self.rate_limit_records[client_ip] = (count + 1, start_time)
         else:
             self.rate_limit_records[client_ip] = (1, now)
-            
+
         response = await call_next(request)
         return response

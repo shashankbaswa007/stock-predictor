@@ -1,14 +1,16 @@
-import pytest
-import pandas as pd
 import numpy as np
-from services.technical_indicators import sma, ema, rsi, macd, bollinger_bands, compute_all
+import pandas as pd
+import pytest
+
+from services.technical_indicators import bollinger_bands, compute_all, ema, macd, rsi, sma
+
 
 @pytest.fixture
 def sample_df():
     # Create a simple upward trending dataframe
     dates = pd.date_range("2023-01-01", periods=100)
     prices = np.linspace(100, 200, 100)
-    
+
     return pd.DataFrame({
         "timestamp": dates,
         "open": prices * 0.99,
@@ -23,7 +25,7 @@ def test_sma(sample_df):
     assert len(sma_20) == 100
     assert pd.isna(sma_20.iloc[0])
     assert not pd.isna(sma_20.iloc[19])
-    
+
     # Since prices are linearly increasing, SMA should be lower than current price
     assert sma_20.iloc[-1] < sample_df["close"].iloc[-1]
 
@@ -53,15 +55,15 @@ def test_bollinger_bands(sample_df):
     assert "lower" in bb
     assert "bandwidth" in bb
     assert "percent_b" in bb
-    
+
 def test_compute_all(sample_df):
     enriched = compute_all(sample_df)
-    
+
     expected_cols = [
         "sma_10", "sma_20", "sma_50", "ema_12", "ema_26", "rsi",
         "macd", "macd_signal", "macd_histogram",
         "bb_upper", "bb_middle", "bb_lower", "bb_bandwidth", "bb_percent_b"
     ]
-    
+
     for col in expected_cols:
         assert col in enriched.columns

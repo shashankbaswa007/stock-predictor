@@ -9,15 +9,14 @@ Bootstraps the FastAPI app with:
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
-from config import settings
-from api.routes_market import router as market_router
 from api.routes_chat import router as chat_router
+from api.routes_market import router as market_router
 from api.routes_portfolio import router as portfolio_router
 from api.routes_ws import router as ws_router
+from config import settings
 from middleware.rate_limit import RateLimitMiddleware
-
-from fastapi.responses import JSONResponse
 
 # ── App Initialization ───────────────────────────────────────────────────────
 app = FastAPI(

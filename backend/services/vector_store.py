@@ -6,10 +6,11 @@ Uses HuggingFace embeddings (384 dimensions).
 Automatically creates the index if it doesn't exist.
 """
 
-import os
-from typing import List, Dict
 import time
+from typing import Dict, List
+
 from langchain_core.documents import Document
+
 try:
     from langchain_huggingface import HuggingFaceEmbeddings
 except ImportError:
@@ -29,17 +30,17 @@ _vector_store = None
 def _initialize_store():
     """Connect to Pinecone, create index if missing, and return the store."""
     global _vector_store
-    
+
     if not settings.pinecone_api_key:
         print("WARNING: No PINECONE_API_KEY found. RAG will fail.")
         return
-        
+
     pc = Pinecone(api_key=settings.pinecone_api_key)
     index_name = settings.pinecone_index_name
-    
+
     # Check if index exists, create if not
     existing_indexes = [index_info["name"] for index_info in pc.list_indexes()]
-    
+
     if index_name not in existing_indexes:
         print(f"Creating Pinecone index '{index_name}'... This may take a moment.")
         pc.create_index(
@@ -47,19 +48,19 @@ def _initialize_store():
             dimension=384,
             metric="cosine",
             spec=ServerlessSpec(
-                cloud="aws", 
+                cloud="aws",
                 region="us-east-1"
             )
         )
         # Wait for index to be ready
         while not pc.describe_index(index_name).status['ready']:
             time.sleep(1)
-            
+
         print("Index created successfully. Populating initial data...")
         # Pre-populate with a few core tickers
         docs: List[Document] = []
         tickers = ["AAPL", "NVDA", "MSFT"]
-        
+
         for ticker in tickers:
             # Load generic company summaries
             excerpts = generate_10k_excerpts(ticker)
@@ -76,7 +77,7 @@ def _initialize_store():
                         }
                     )
                 )
-                
+
             # Load actual News Headlines
             news = generate_news(ticker, count=5)
             for article in news:
@@ -92,12 +93,12 @@ def _initialize_store():
                         }
                     )
                 )
-                
+
         # Initialize and populate store
         if docs:
             _vector_store = PineconeVectorStore.from_documents(
-                docs, 
-                _embeddings, 
+                docs,
+                _embeddings,
                 index_name=index_name,
                 pinecone_api_key=settings.pinecone_api_key
             )
@@ -123,18 +124,18 @@ def retrieve_context(query: str, ticker: str, k: int = 3) -> List[Dict]:
     store = get_vector_store()
     if not store:
         return []
-        
+
     # Filter by ticker (Pinecone metadata filtering)
     filter_dict = {"ticker": ticker.upper()}
-    
+
     # Perform similarity search
     results = store.similarity_search(query, k=k, filter=filter_dict)
-    
+
     # Dynamic Insertion: If no results found for this ticker, fetch and embed them now
     if len(results) == 0:
         print(f"No documents found for {ticker} in Pinecone. Fetching dynamically...")
         docs: List[Document] = []
-        
+
         # Load generic company summaries
         excerpts = generate_10k_excerpts(ticker)
         for ex in excerpts:
@@ -150,7 +151,7 @@ def retrieve_context(query: str, ticker: str, k: int = 3) -> List[Dict]:
                     }
                 )
             )
-            
+
         # Load actual News Headlines
         news = generate_news(ticker, count=5)
         for article in news:
@@ -166,13 +167,13 @@ def retrieve_context(query: str, ticker: str, k: int = 3) -> List[Dict]:
                     }
                 )
             )
-            
+
         if docs:
             store.add_documents(docs)
             print(f"Successfully embedded {len(docs)} documents for {ticker}. Retrying search...")
             time.sleep(1) # Wait briefly for Pinecone to index
             results = store.similarity_search(query, k=k, filter=filter_dict)
-    
+
     return [
         {
             "content": doc.page_content,

@@ -5,13 +5,14 @@ Replaces yfinance with Premium APIs (Polygon & Finnhub).
 Graceful degradation to yfinance if rate limits are hit.
 """
 
-import os
 import time
-import requests
-import pandas as pd
-import yfinance as yf
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
+
+import pandas as pd
+import requests
+import yfinance as yf
+
 from config import settings
 
 # ── TTL Cache (5 minutes) for real-time data freshness ────────────────────────
@@ -43,7 +44,7 @@ def _get_polygon_dates(period: str) -> tuple[str, str]:
         start = end - timedelta(days=1825)
     else:
         start = end - timedelta(days=180)
-    
+
     return start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d")
 
 
@@ -71,12 +72,12 @@ def generate_ohlcv(
             elif interval == "5m":
                 multiplier = 5
                 timespan = "minute"
-                
+
             start_date, end_date = _get_polygon_dates(period)
-            
+
             url = f"https://api.polygon.io/v2/aggs/ticker/{ticker.upper()}/range/{multiplier}/{timespan}/{start_date}/{end_date}?adjusted=true&sort=asc&apiKey={settings.polygon_api_key}"
             res = requests.get(url, timeout=5)
-            
+
             if res.status_code == 200:
                 data = res.json()
                 if "results" in data:
@@ -102,13 +103,13 @@ def generate_ohlcv(
     try:
         t = yf.Ticker(ticker)
         df = t.history(period=period, interval=interval)
-        
+
         if df.empty:
             return pd.DataFrame(columns=["timestamp", "open", "high", "low", "close", "volume"])
-            
+
         df.reset_index(inplace=True)
         date_col = "Datetime" if "Datetime" in df.columns else "Date"
-        
+
         df.rename(columns={
             date_col: "timestamp",
             "Open": "open",
@@ -117,13 +118,13 @@ def generate_ohlcv(
             "Close": "close",
             "Volume": "volume"
         }, inplace=True)
-        
+
         df.dropna(subset=["open", "high", "low", "close"], inplace=True)
         df["timestamp"] = df["timestamp"].apply(lambda x: x.isoformat())
         result_df = df[["timestamp", "open", "high", "low", "close", "volume"]]
         _ohlcv_cache[cache_key] = (time.time(), result_df)
         return result_df
-        
+
     except Exception as e:
         print(f"Error fetching OHLCV for {ticker}: {e}")
         return pd.DataFrame(columns=["timestamp", "open", "high", "low", "close", "volume"])
@@ -143,7 +144,7 @@ def _get_yfinance_fundamentals(ticker: str) -> Dict:
         cached_time, cached_data = _fundamentals_cache[cache_key]
         if time.time() - cached_time < _FUNDAMENTALS_TTL:
             return cached_data
-    
+
     try:
         info = yf.Ticker(ticker).info
         result = {
@@ -170,12 +171,12 @@ def _get_yfinance_fundamentals(ticker: str) -> Dict:
 
 def generate_quote(ticker: str) -> Dict:
     """Fetch live quote primarily from Finnhub, supplemented with yfinance fundamentals."""
-    
+
     if settings.finnhub_api_key:
         try:
             url = f"https://finnhub.io/api/v1/quote?symbol={ticker.upper()}&token={settings.finnhub_api_key}"
             res = requests.get(url, timeout=5)
-            
+
             if res.status_code == 200:
                 data = res.json()
                 if "c" in data and data["c"] != 0:
@@ -208,12 +209,12 @@ def generate_quote(ticker: str) -> Dict:
     try:
         t = yf.Ticker(ticker)
         info = t.info
-        
+
         price = info.get("currentPrice") or info.get("regularMarketPrice", 0.0)
         prev_close = info.get("previousClose", price)
         change = price - prev_close
         change_pct = (change / prev_close) * 100 if prev_close else 0.0
-        
+
         return {
             "ticker": ticker.upper(),
             "price": round(price, 2),
@@ -256,7 +257,7 @@ def generate_news(ticker: str, count: int = 5) -> List[Dict]:
             start = end - timedelta(days=30)
             url = f"https://finnhub.io/api/v1/company-news?symbol={ticker.upper()}&from={start.strftime('%Y-%m-%d')}&to={end.strftime('%Y-%m-%d')}&token={settings.finnhub_api_key}"
             res = requests.get(url, timeout=5)
-            
+
             if res.status_code == 200:
                 data = res.json()
                 articles = []
@@ -274,7 +275,7 @@ def generate_news(ticker: str, count: int = 5) -> List[Dict]:
                     return articles
         except Exception as e:
             print(f"Finnhub News failed: {e}")
-            
+
     return [{"headline": f"No recent news found for {ticker}.", "source": "System", "sentiment": 0.0, "published_at": datetime.now().isoformat(), "url": ""}]
 
 # ═══════════════════════════════════════════════════════════════════════════════

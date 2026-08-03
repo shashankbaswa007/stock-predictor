@@ -8,8 +8,10 @@ using a real LLM.
 """
 
 import json
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List
+
 from pydantic import BaseModel, Field
+
 from agents.llm_factory import get_llm
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -70,11 +72,11 @@ Discovery Data:
 """
 
 def synthesize_response(
-    query: str, 
-    intent: str, 
-    ticker: str, 
-    quant_data: Dict, 
-    fundamental_data: Dict, 
+    query: str,
+    intent: str,
+    ticker: str,
+    quant_data: Dict,
+    fundamental_data: Dict,
     risk_data: Dict,
     discovery_data: Dict = None,
     use_mock_llm: bool = False
@@ -85,7 +87,7 @@ def synthesize_response(
     try:
         llm = get_llm()
         structured_llm = llm.with_structured_output(ExecutiveResponse)
-        
+
         prompt = EXECUTIVE_SYSTEM_PROMPT.format(
             intent=intent,
             ticker=ticker,
@@ -94,12 +96,12 @@ def synthesize_response(
             risk_data=json.dumps(risk_data, indent=2),
             discovery_data=json.dumps(discovery_data or {}, indent=2)
         )
-        
+
         prompt += f"\n\nUser Query: {query}\nProvide your synthesis."
-        
+
         # Invoke the LLM
         response: ExecutiveResponse = structured_llm.invoke(prompt)
-        
+
         # Convert back to dict for the API layer to return as JSON
         # Include agent_source for the UI
         result = response.dict()
@@ -111,9 +113,9 @@ def synthesize_response(
             }
         }
         result["agent_source"] = intent
-        
+
         return result
-        
+
     except Exception as e:
         print(f"Error in executive_agent: {e}")
         # Fallback response in case the LLM fails

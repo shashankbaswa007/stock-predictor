@@ -5,10 +5,13 @@ Wraps the RAG pipeline to query the FAISS vector store.
 Uses a real LLM to analyze the DuckDuckGo news and generic 10-K data.
 """
 
-from typing import Dict, Any, List
+from typing import Any, Dict
+
 from pydantic import BaseModel, Field
-from services.vector_store import retrieve_context
+
 from agents.llm_factory import get_llm
+from services.vector_store import retrieve_context
+
 
 class FundamentalAnalysis(BaseModel):
     sentiment_score: float = Field(description="A score between -1.0 (very bearish) and 1.0 (very bullish)")
@@ -22,31 +25,31 @@ def analyze_fundamentals(query: str, ticker: str) -> Dict[str, Any]:
     try:
         # 1. Retrieve top 5 most relevant chunks from FAISS
         contexts = retrieve_context(query, ticker, k=5)
-        
+
         if not contexts:
             return {
                 "agent": "fundamental",
                 "ticker": ticker,
                 "summary": f"No fundamental data found for {ticker}."
             }
-            
+
         # 2. Extract text for LLM prompt
         context_text = "\n\n".join([f"[{c['metadata'].get('source', 'Unknown')}] {c['content']}" for c in contexts])
-        
+
         # 3. Use LLM to analyze the text
         llm = get_llm()
         structured_llm = llm.with_structured_output(FundamentalAnalysis)
-        
+
         prompt = f"""
         You are a fundamental financial analyst.
         Analyze the following recent news and filing excerpts for {ticker}:
-        
+
         {context_text}
-        
+
         Determine the overall sentiment and provide a concise summary.
         IMPORTANT: If the provided text does not contain relevant information about {ticker}, you MUST return a sentiment_score of 0.0, a sentiment_label of "NEUTRAL", and explain in the summary that no relevant fundamental data was found.
         """
-        
+
         try:
             analysis = structured_llm.invoke(prompt)
         except Exception as schema_err:
@@ -56,7 +59,7 @@ def analyze_fundamentals(query: str, ticker: str) -> Dict[str, Any]:
                 sentiment_label="NEUTRAL",
                 summary=f"No relevant fundamental data could be structured for {ticker}."
             )
-        
+
         return {
             "agent": "fundamental",
             "ticker": ticker,

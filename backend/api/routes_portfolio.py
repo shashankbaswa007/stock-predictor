@@ -5,9 +5,10 @@ CRUD operations for portfolio holdings and risk metrics.
 Phase 1: Stub with mock portfolio state.
 """
 
-from fastapi import APIRouter
-from pydantic import BaseModel, Field
 from typing import List, Optional
+
+from fastapi import APIRouter
+from pydantic import BaseModel
 
 router = APIRouter()
 

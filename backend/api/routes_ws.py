@@ -8,7 +8,8 @@ import asyncio
 import json
 from datetime import datetime
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
+from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
+
 from services.mock_data import generate_quote
 
 router = APIRouter()
@@ -50,7 +51,7 @@ async def websocket_prices(
             # Fetch real quote from yfinance
             quote = generate_quote(current_ticker)
             tick_count += 1
-            
+
             tick = {
                 "type": "tick",
                 "ticker": current_ticker,
@@ -61,7 +62,7 @@ async def websocket_prices(
                 "tick_number": tick_count,
                 "timestamp": datetime.now().isoformat()
             }
-            
+
             await websocket.send_text(json.dumps(tick))
 
     except WebSocketDisconnect:
@@ -70,5 +71,5 @@ async def websocket_prices(
         print(f"WS Error: {e}")
         try:
             await websocket.close()
-        except:
+        except Exception:
             pass
