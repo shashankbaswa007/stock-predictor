@@ -65,7 +65,7 @@ export function ChatPanel() {
         ticker: currentTicker,
         ui_context: {
           view_mode: viewMode,
-          portfolio_state: useAppStore.getState().portfolio,
+          portfolio_state: useAppStore.getState().portfolio as unknown as Record<string, unknown>,
         },
       });
 

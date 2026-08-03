@@ -60,7 +60,7 @@ export function TechnicalChart({ data, type }: TechnicalChartProps) {
                 if (active && payload && payload.length) {
                   return (
                     <div className="bg-surface-800 border border-border p-2 rounded-lg shadow-lg">
-                      <p className="text-text-primary">RSI: {payload[0].value?.toFixed(2)}</p>
+                      <p className="text-text-primary">RSI: {(payload[0].value as number)?.toFixed(2)}</p>
                     </div>
                   );
                 }

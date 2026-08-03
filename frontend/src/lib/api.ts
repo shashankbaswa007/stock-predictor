@@ -29,6 +29,7 @@ export interface ChatResponse {
   reasoning: string[];
   ui_action: UIAction | null;
   agent_source: string;
+  citations?: string[];
 }
 
 export async function sendChatMessage(req: ChatRequest): Promise<ChatResponse> {

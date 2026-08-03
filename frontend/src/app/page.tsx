@@ -109,7 +109,7 @@ export default function HomePage() {
           MAIN CONTENT — SPLIT SCREEN
           ═══════════════════════════════════════════════════════════════════ */}
       <main className="flex-1 flex min-h-0 overflow-hidden">
-        <Group direction="horizontal">
+        <Group orientation="horizontal">
           {/* ── Dashboard Panel ───────────────────────────────────── */}
           <Panel defaultSize={65} minSize={30}>
             <div className="h-full p-3 pr-1.5 overflow-hidden">
@@ -123,7 +123,7 @@ export default function HomePage() {
 
           {/* ── Vertical Divider Handle ─────────────────────────────────── */}
           <Separator className="w-1.5 group flex items-center justify-center">
-            <div className="w-px h-12 bg-border group-hover:bg-accent/50 group-hover:w-1 transition-all rounded" />
+            <div className="w-0.5 h-8 bg-surface-700 rounded-full group-hover:bg-accent/40 group-active:bg-accent transition-colors" />
           </Separator>
 
           {/* ── Chat Co-Pilot Panel ───────────────────────────────── */}
