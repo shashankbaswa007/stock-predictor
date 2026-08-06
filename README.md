@@ -92,6 +92,17 @@ This application is engineered for production-grade reliability across three pil
 - **Machine Learning Robustness**: The Quant Agent utilizes **Ridge Regression (L2 Regularized)**. By strictly enforcing a chronological train/test split (preventing look-ahead bias) and penalizing correlated technical indicators, the model avoids the wild, over-confident hallucinations often seen in poorly tuned Neural Networks.
 - **System Stability**: The FastAPI backend implements a global exception handler and rate-limiting middleware, while the Next.js frontend wraps critical components in React `ErrorBoundary` modules to isolate component failures.
 
+## 🌟 Why This Project is Resume-Worthy
+
+This application goes far beyond a typical "hello world" tutorial by implementing **Enterprise-Grade Engineering Practices** that recruiters and hiring managers look for:
+
+- **Complex Systems Architecture**: Demonstrates the ability to orchestrate a distributed, multi-agent LLM system where multiple AI agents (Quant, Fundamental, Risk) collaborate asynchronously.
+- **Robust CI/CD Pipelines**: Includes a fully automated GitHub Actions pipeline (`main.yml`) that runs on every PR, ensuring code quality before deployment.
+- **Strict Code Quality & Safety**: Uses **Ruff** (Python) and **ESLint Flat Config** (Next.js) for uncompromising linting, along with deep integration of TypeScript strict mode to prevent runtime errors.
+- **Automated Testing**: Features both backend unit/integration testing with `pytest` and frontend End-to-End (E2E) testing with **Playwright**.
+- **Infrastructure as Code (IaC)**: Includes a `render.yaml` Blueprint for deterministic, one-click backend deployments, bridging the gap between development and DevOps.
+- **Graceful Degradation**: Built with defensive programming principles, including API cascades (Polygon → Finnhub → yfinance) and React Error Boundaries, proving an understanding of production reliability.
+
 ## 📦 Tech Stack
 
 | Layer | Technology | Purpose |
